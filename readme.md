@@ -13,6 +13,7 @@ adding LED Splash effect with the provided QMK software.
 + /.build/*
 + /keyboards/massdrop/ctrl/keymaps/valen214/*
 + /keyboards/massdrop/ctrl/keymaps/valen214_activate_on_press/*
+
 other changes are unintentional or not important.
 
 ## How to use:
@@ -23,12 +24,15 @@ other changes are unintentional or not important.
 (I am sorry that I am using MSYS)
 4) `Fn + B` or use the pin to reset
 5) Done
+
 ### qmk toolbox
 1) bin file inside /.build/
+
 fullstop.
 
 ### (Currently Available) Settings
 `Fn + P`: Toggle background and wave on/off
+
 
 ## Implementation:
 basically all changes happen only in `/keyboards/massdrop/ctrl/keymaps/valen214/keymap.c`:
@@ -49,6 +53,7 @@ This project is just for fun and please don't be serious 😆.
 
 
 -a copy of the above readme is in `/keyboards/massdrop/ctrl/`, NO-
+
 below is the content from the original readme
 
 # Quantum Mechanical Keyboard Firmware

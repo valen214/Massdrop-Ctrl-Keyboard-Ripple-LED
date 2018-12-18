@@ -170,7 +170,7 @@ static _ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS]; // max number of keys (not ke
 // Runs just one time when the keyboard initializes.
 void matrix_init_user(void) {
     // I always thought the led pattern is not moving after start up
-    led_animation_speed += ANIMATION_SPEED_STEP * 10;
+    led_animation_speed += ANIMATION_SPEED_STEP * 20;
 
 
     print("matrix_init_user(): initialization");
@@ -272,7 +272,7 @@ void matrix_init_user(void) {
         case 3: led_instructions[i].id3 = id; break;
         }
 
-        // one line alternative
+        // one line alternative (not working, but trying to)
         // (led_instructions[i].id0 + sizeof(uint32_t) * (i-1) / 32)
     }
 
@@ -288,21 +288,15 @@ void matrix_scan_user(void) {
     for(int i = 4; i < LED_NUMBERS; ++i){ // O(n^2)
         wave_front[i] = false;
         for(int j = 4; j < LED_NUMBERS; ++j){
-            if(i == j) continue;
             _ub dis = DISTANCE_MAP[i][j];
-            /*
-            dis == 0
-            */
-            if(dis != 0){
-                uint32_t e = timer_elapsed32(LAST_PRESSED_LED_TIME[j]);
-                // number of periods that the wave takes from a to b - dis
-                // delta period
-                uint32_t dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - dis;
-                if(( 0 <= dp ) && (
-                        dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH )){
-                    wave_front[i] = true;
-                    break;
-                }
+            // if((i != j) && (dis == 0)) continue;
+            uint32_t e = timer_elapsed32(LAST_PRESSED_LED_TIME[j]);
+            // number of periods that the wave takes from a to b - dis
+            // delta period
+            uint32_t dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - dis;
+            if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
+                wave_front[i] = true;
+                break;
             }
         }
     }

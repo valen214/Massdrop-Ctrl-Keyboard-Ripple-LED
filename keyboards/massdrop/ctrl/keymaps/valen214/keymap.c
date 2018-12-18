@@ -79,51 +79,41 @@ print("".join([f"case KC_{c.upper()}:{chr(10)
         for c in "abcdefghijklmnopqrstuvwxyz"]))
 */
 
+// custom definitions
+#define LED_NUMBERS (4 + 87 + 1)
+typedef unsigned char _ub;
+
+
+/*
+configuration struct for splash effect
+
+
+TODO: adding one more key layer for changing settings
+*/
+struct{
+    bool WAVE_FRONT_ON;
+    _ub WAVE_FRONT_WIDTH;
+    int WAVE_PERIOD;
+
+} SPLASH_LED_CONFIG = { // this default setting is most appealing
+    .WAVE_FRONT_ON = 1,
+    .WAVE_FRONT_WIDTH = 2,
+    .WAVE_PERIOD = 100,
+};
+
 /*
 
 definitions of led_instruction is in /tmk_core/protocol/arm_atsam/led_matrix.h
 definitions of value of KC_* is in /tmk_core/common/keycode.h
 
 */
-// not including underglow layer
-#define LED_NUMBERS (4 + 87 + 1)
-typedef unsigned char _ub;
-struct{
-    bool WAVE_FRONT_ON;
-
-} SPLASH_LED_CONFIG;
 led_instruction_t led_instructions[LED_NUMBERS] = {
     { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN,
             .id2 = 4278190080, .id3 = 1073741823}, // underglow
     { .flags = LED_FLAG_NULL }, // KC_ROLL_OVER => changed to KC_FN
     { .flags = LED_FLAG_NULL }, // KC_POST_FAIL
     { .flags = LED_FLAG_NULL }, // KC_UNDEFINED
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 524288 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 16 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 4 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 2097152 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 16 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 4194304 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 8388608 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 16777216 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 512 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 33554432 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 67108864 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 134217728 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 64 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 32 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 1024 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 2048 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 4 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 32 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 1048576 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 64 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 256 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 8 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 8 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 2 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id1 = 128 },
-    { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN, .id2 = 1 },
+    // the flags and ids will be calculated in matrix_init_user()
 };
 
 // I don't know what it does, it's just here
@@ -179,10 +169,30 @@ static _ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS]; // max number of keys (not ke
 
 // Runs just one time when the keyboard initializes.
 void matrix_init_user(void) {
+    // I always thought the led pattern is not moving after start up
+    led_animation_speed += ANIMATION_SPEED_STEP * 10;
+
+
     print("matrix_init_user(): initialization");
     /*
     initialize key distances
     I am not sure if MO(1) < unsigned char max
+    MO(1) is larger than max_unsigned_short
+
+    I will add comment to explain the structure of this KEY_POSITION_MAP later,
+    one key feature that utilizing it is the 'if' statement below:
+    `
+    if(i < x && j > y){
+        dis -= dx < dy ? dx : dy; // min(dx, dy)
+    }
+    `
+
+    This is still a temporary solution for now (
+        but not likely to change in the near futre),
+    I hope if someone can provide me a better solution (
+        like pos of the leds are actually specified in one of the headers)
+
+    int(20737) at the last row is the FN key
     */
     unsigned short KEY_POSITION_MAP[5][15] = {
         { KC_NO,  KC_GRV,    KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS,    KC_EQL,    KC_BSPC, },
@@ -191,7 +201,12 @@ void matrix_init_user(void) {
                     { KC_NO,  KC_LSFT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM,  KC_DOT,  KC_SLSH,   KC_RSFT,  KC_RSFT,   KC_RSFT, },
                         { KC_LCTL,  KC_LGUI,  KC_LALT,  KC_SPC,  KC_SPC,  KC_SPC,  KC_SPC,  KC_SPC,  KC_SPC,   KC_RALT,   KC_NO,   20737,   KC_POWER,  KC_RCTL,  KC_RCTL, },
     };
-    // it's not bfs
+
+    /*
+    it's not bfs
+
+    complexity of the below implementation ~O(n^2), n = number of keys
+    */
     _ub x = 0, y = 0;
     while(x < 15 && y < 5){
         _ub sl = ktli(KEY_POSITION_MAP[y][x]); // source led
@@ -204,7 +219,7 @@ void matrix_init_user(void) {
 
                 _ub dis = dx + dy;
                 if(i < x && j > y){
-                    dis -= dx < dy ? dx : dy;
+                    dis -= dx < dy ? dx : dy; // min(dx, dy)
                 }
                 _ub _dis = DISTANCE_MAP[sl][tl];
                 
@@ -216,7 +231,7 @@ void matrix_init_user(void) {
         }
         if(x < 14){
             ++x;
-        } else{
+        } else{ // start next row iteration
             x = 0;
             ++y;
         }
@@ -227,13 +242,21 @@ void matrix_init_user(void) {
     now start doing led_instructions
     */
     
-    // underglow
+    // underglow // repeated definition
     led_instructions[0].flags =
             LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
     led_instructions[0].id2 = 4278190080;
     led_instructions[0].id3 = 1073741823;
 
-    // suppose to iterate 87 times for a 87 keys keyboard
+    /*
+    suppose to iterate 87 times for a 87 keys keyboard
+    as there are 87 led_structions with LED_FLAG_MATCH_ID
+    which is suppose to be one key only
+
+    so the led on each of the key can be modified by accessing the
+    corresponding led_instruction[ktli(keycode)]:
+    # see ktli(keycode) definition above
+    */
     uint16_t flag = LED_FLAG_MATCH_ID | (
             SPLASH_LED_CONFIG.WAVE_FRONT_ON ?
             LED_FLAG_USE_ROTATE_PATTERN :
@@ -254,26 +277,36 @@ void matrix_init_user(void) {
     }
 
 
-};
+}; // end of matrix_init_user(), initialization function
 
 // Runs constantly in the background, in a loop.
 
-uint32_t LAST_PRESSED_LED_TIMERS[LED_NUMBERS];
+uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
 void matrix_scan_user(void) {
     // keyboard_leds()
     _ub wave_front[LED_NUMBERS];
-    for(int i = 4; i < LED_NUMBERS; ++i){
+    for(int i = 4; i < LED_NUMBERS; ++i){ // O(n^2)
         wave_front[i] = false;
         for(int j = 4; j < LED_NUMBERS; ++j){
             if(i == j) continue;
-            uint32_t e = timer_elapsed32(LAST_PRESSED_LED_TIMERS[j]);
             _ub dis = DISTANCE_MAP[i][j];
-            if(( dis != 0 ) && ( e / 200 == dis )){
-                wave_front[i] = true;
-                break;
+            /*
+            dis == 0
+            */
+            if(dis != 0){
+                uint32_t e = timer_elapsed32(LAST_PRESSED_LED_TIME[j]);
+                // number of periods that the wave takes from a to b - dis
+                // delta period
+                uint32_t dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - dis;
+                if(( 0 <= dp ) && (
+                        dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH )){
+                    wave_front[i] = true;
+                    break;
+                }
             }
         }
     }
+
     // print("onlist: ");
     for(int i = 4; i < LED_NUMBERS; ++i){
         // uprintf("%d ", wave_front[i]);
@@ -287,10 +320,11 @@ void matrix_scan_user(void) {
         }
     }
     // print("\n");
-};
+}; // end of matrix_scan_user (looping function)
 
 
-/*
+/* command
+
 
 make massdrop/ctrl:valen214
 
@@ -448,7 +482,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case 20737: // FN key
             if (record->event.pressed) {
                 uprintf("%d pressed\n", keycode);
-                LAST_PRESSED_LED_TIMERS[ktli(keycode)] = timer_read32();
+                LAST_PRESSED_LED_TIME[ktli(keycode)] = timer_read32();
             }
             return true;
         default:
@@ -460,7 +494,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     keycode >= 0x04 && // 4: KC_A
                     keycode <= 0x52){ // 164: KC_RIGHT
                 uprintf("%d pressed\n", keycode);
-                LAST_PRESSED_LED_TIMERS[ktli(keycode)] = timer_read32();
+                LAST_PRESSED_LED_TIME[ktli(keycode)] = timer_read32();
             }
             return true; //Process all other keycodes normally
     }

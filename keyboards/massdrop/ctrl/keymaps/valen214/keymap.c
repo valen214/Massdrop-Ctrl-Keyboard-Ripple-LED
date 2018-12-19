@@ -96,8 +96,19 @@ print("".join([f"case KC_{c.upper()}:{chr(10)
 
 // custom definitions
 #define LED_NUMBERS (87 + 1)
+#define INDICATORS_LED 6
 typedef unsigned char _ub;
 
+
+#define RAINBOW_COLORS 18
+const _ub RAINBOW[RAINBOW_COLORS][3] = {
+    {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
+    {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
+    {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
+    {170, 204,  34}, {105, 208,  37}, { 34, 204, 170},
+    { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
+    { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
+}; // 18
 
 /*
 configuration struct for splash effect
@@ -117,7 +128,7 @@ struct{
 } SPLASH_LED_CONFIG = { // this default setting is most appealing
     .DRIPPLE_PATTERN = 1,
     .WAVE_FRONT_WIDTH = 2,
-    .WAVE_PERIOD = 100,
+    .WAVE_PERIOD = 50,
 };
 
 #define KEY_STROKES_LENGTH 10
@@ -133,7 +144,7 @@ definitions of led_instruction is in /tmk_core/protocol/arm_atsam/led_matrix.h
 definitions of value of KC_* is in /tmk_core/common/keycode.h
 
 */
-led_instruction_t led_instructions[LED_NUMBERS] = {
+led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_LED] = {
     { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN,
             .id2 = 4278190080, .id3 = 1073741823}, // underglow
     // the flags and ids will be calculated in matrix_init_user()
@@ -311,6 +322,34 @@ void matrix_init_user(void) {
         KEY_STROKES[i].led_id = 0;
         KEY_STROKES[i].time = 0;
     }
+
+
+    /*
+    indicators: QWEASD, UIOJKL
+    */
+    _ub indicator_list[2][6] = {
+        { KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D },
+        { KC_U, KC_I, KC_O, KC_J, KC_K, KC_L },
+    };
+    flag = LED_FLAG_MATCH_ID | LED_FLAG_MATCH_LAYER | LED_FLAG_USE_RGB;
+    for(int i = LED_NUMBERS, j = 0; j < INDICATORS_LED; ++i, ++j){
+        led_instructions[i].layer = 2;
+        led_instructions[i].flags = flag;
+        // 3 * j = RAINBOW_COLORS / INDICATORS_LED
+        led_instructions[i].r = RAINBOW[3 * j][0];
+        led_instructions[i].g = RAINBOW[3 * j][1];
+        led_instructions[i].b = RAINBOW[3 * j][2];
+        for(_ub k = 0; k < 2; ++k){
+            uint32_t id = ktli(indicator_list[k][j]);
+            switch((id-1) / 32){
+            case 0: led_instructions[i].id0 |= 1 << ((id-1) % 32); break;
+            case 1: led_instructions[i].id1 |= 1 << ((id-1) % 32); break;
+            case 2: led_instructions[i].id2 |= 1 << ((id-1) % 32); break;
+            case 3: led_instructions[i].id3 |= 1 << ((id-1) % 32); break;
+            }
+        }
+    }
+
 }; // end of matrix_init_user(), initialization function
 
 // Runs constantly in the background, in a loop.
@@ -322,16 +361,6 @@ longest wave time * fastest typing speed
 = 22 * WAVE_PREIOD * typing speed
 */
 
-
-#define RAINBOW_COLORS 18
-const _ub RAINBOW[RAINBOW_COLORS][3] = {
-    {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
-    {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
-    {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
-    {170, 204,  34}, {105, 208,  37}, { 34, 204, 170},
-    { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
-    { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
-}; // 18
 
 uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
 void matrix_scan_user(void) {

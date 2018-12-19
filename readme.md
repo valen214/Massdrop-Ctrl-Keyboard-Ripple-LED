@@ -1,6 +1,7 @@
 # Massdrop CTRL Keyboard Splash LED
 
 adding LED Splash effect with the provided QMK software.
+demo video: https://youtu.be/W3U1SDztx1I
 
 ## How to use:
 ### Build yourself
@@ -23,7 +24,7 @@ fullstop.
 
 - `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 10 on rainbow and 5 on wave off, set to >10 and press space to see true rainbow!)
 
-- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 30ms, 10ms per incre/decre, lowest(fastest): 10ms)
+- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 30~50ms, 10ms per incre/decre, lowest(fastest): 10ms)
 
 `UIO` are equivalent to `QWE` (the keys will light up after pressing `Fn + P`
 

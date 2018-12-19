@@ -401,21 +401,8 @@ void matrix_scan_user(void) {
         // uprintf("%d ", wave_front[i]);
         switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
         case 0:
-        case 3:
-            if(( !wave_front[i] ) || (
-                    SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 0 )){
-                led_instructions[i].r = 0;
-                led_instructions[i].g = 0;
-                led_instructions[i].b = 0;
-            } else{
-                _ub c = (wave_front[i] * RAINBOW_COLORS /
-                        SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
-                led_instructions[i].r = RAINBOW[c][0];
-                led_instructions[i].g = RAINBOW[c][1];
-                led_instructions[i].b = RAINBOW[c][2];
-            }
             led_instructions[i].flags =
-                    LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
             break;
         case 1:
             if(wave_front[i]){
@@ -434,6 +421,21 @@ void matrix_scan_user(void) {
                 led_instructions[i].flags =
                         LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
             }
+            break;
+        case 3:
+            if(wave_front[i]){
+                _ub c = (wave_front[i] * RAINBOW_COLORS /
+                        SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
+                led_instructions[i].r = RAINBOW[c][0];
+                led_instructions[i].g = RAINBOW[c][1];
+                led_instructions[i].b = RAINBOW[c][2];
+            } else{
+                led_instructions[i].r = 0;
+                led_instructions[i].g = 0;
+                led_instructions[i].b = 0;
+            }
+            led_instructions[i].flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+            break;
         }
     }
     // print("\n");
@@ -585,27 +587,30 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 uint16_t flag = 0;
                 switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
                 case 0: // None
-                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     break;
                 case 1: // background off, wave on
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 30;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     break;
                 case 2: // background on, wave off
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 30;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     break;
                 case 3:
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 30;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     break;
                 }
                 
                 for(int i = 1; i < LED_NUMBERS; ++i){
                     led_instructions[i].flags = flag;
+                    led_instructions[i].r = 0;
+                    led_instructions[i].g = 0;
+                    led_instructions[i].b = 0;
                 }
 
                 // remove effect after changing pattern

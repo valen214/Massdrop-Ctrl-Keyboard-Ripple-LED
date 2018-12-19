@@ -23,9 +23,9 @@ fullstop.
 
 - `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 10 on rainbow and 5 on wave off, set to >10 and press space to see true rainbow!)
 
-- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 50ms, 10ms per incre/decre, lowest(fastest): 10ms)
+- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 30ms, 10ms per incre/decre, lowest(fastest): 10ms)
 
-`UIO` are equivalent to `QWE`
+`UIO` are equivalent to `QWE` (the keys will light up after pressing `Fn + P`
 
 `JKL` are equivalent to `ASD` so as to allow one hand switching
 

@@ -599,7 +599,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     break;
                 case 3:
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 10;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 30;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     break;
                 }

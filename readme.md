@@ -45,7 +45,7 @@ fullstop.
 
 
 ## Implementation:
-basically all changes happen only in `/keyboards/massdrop/ctrl/keymaps/valen214/keymap.c`:
+**basically all changes happen only in `/keyboards/massdrop/ctrl/keymaps/valen214/keymap.c`:**
 Inspired by [LastContinue's Post](https://www.massdrop.com/talk/9382/how-to-configure-your-ctrl-keyboard/2201429),
 by abusing `led_instructions_t` to set the led of each individual key only in `keymap.c` (It is understood to be very inefficient, but one benefit of this is being more prone to future changes (if any, ok I know there is very little) and slightly more portable (more below)).
 

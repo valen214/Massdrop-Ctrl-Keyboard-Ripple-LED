@@ -4,15 +4,25 @@ adding LED Splash effect with the provided QMK software.
 
 ## What's different (or added) from the forked project: (root as project folder)
 `+ /hid_listen.exe`
+
 `+ /massdrop_ctrl_default.bin`
+
 `+ /massdrop_ctrl_valen214.bin`
+
 `+ /massdrop_ctrl_valen_activate_on_press.bin`
+
 `+ /mdloader_linux`
+
 `+ /mdloader_windows.exe`
+
 `+ /qmktoolbox.exe`
+
 `+ /.build/*`
+
 `+ /keyboards/massdrop/ctrl/keymaps/valen214/*`
+
 `+ /keyboards/massdrop/ctrl/keymaps/valen214_activate_on_press/*`
+
 
 other changes are unintentional or not important.
 

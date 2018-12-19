@@ -345,7 +345,7 @@ void matrix_scan_user(void) {
             uint32_t e = timer_elapsed32(KEY_STROKES[i].time);
             _ub valid = 0;
             _ub l = KEY_STROKES[i].led_id;
-            uint32_t dp;
+            unsigned short dp;
             for(int j = 1 ; j < LED_NUMBERS; ++j){
                 dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - DISTANCE_MAP[l][j];
                 /*
@@ -362,6 +362,7 @@ void matrix_scan_user(void) {
                 }
             }
 
+            // if it's never set in the loop, it would be zero
             KEY_STROKES[i].valid = valid;
         }
     }
@@ -559,19 +560,22 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     break;
                 case 1: // background off, wave on
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 30;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     break;
                 case 2: // background on, wave off
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 30;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     break;
                 case 3:
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 10;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     break;
                 }
                 
-                for(int i = 4; i < LED_NUMBERS-1; ++i){
+                for(int i = 1; i < LED_NUMBERS; ++i){
                     led_instructions[i].flags = flag;
                 }
 

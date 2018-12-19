@@ -19,15 +19,18 @@ fullstop.
 ## (Currently Available) Settings
 
 ### Key Combos:
-- `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect (None, background off wave on (default), background on wave off, rainbow wave)
+- `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect (None, background off wave on (default), background on wave off, rainbow wave :rainbow:)
 
-- `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 5 on rainbow and wave off, set to >10 and press space to see true rainbow!)
+- `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 10 on rainbow and 5 on wave off, set to >10 and press space to see true rainbow!)
 
-- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (default: 100ms, 10ms per incre/decre, lowest: 10ms)
+- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 50ms, 10ms per incre/decre, lowest(fastest): 10ms)
 
 `UIO` are equivalent to `QWE`
+
 `JKL` are equivalent to `ASD` so as to allow one hand switching
 
+### TODO:
+- add indicator
 
 ## Implementation:
 **basically all changes happen only in `/keyboards/massdrop/ctrl/keymaps/valen214/keymap.c`:**

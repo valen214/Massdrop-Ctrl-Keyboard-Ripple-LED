@@ -201,6 +201,7 @@ void matrix_init_user(void) {
 
     #define KPM_HEIGHT 7
     #define KPM_WIDTH 20
+    // proportional to the real keyboard
     unsigned short KEY_POSITION_MAP[KPM_HEIGHT][KPM_WIDTH] = {
         { KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,    KC_F10,  KC_F11,  KC_F12,  KC_NO,   KC_PSCR, KC_SLCK, KC_PAUS,  },
         { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
@@ -227,7 +228,7 @@ void matrix_init_user(void) {
                 _ub dx = abs(i - x), dy = abs(j - y);
 
                 _ub dis = dx + dy;
-                if(i < x && j > y){
+                if(i < x && j > y){ // core algorithm
                     dis -= dx < dy ? dx : dy; // min(dx, dy)
                 }
                 _ub _dis = DISTANCE_MAP[sl][tl];

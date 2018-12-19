@@ -551,20 +551,26 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 _ub incre = keycode == L_SP_PR ? 3 : 1;
                 SPLASH_LED_CONFIG.DRIPPLE_PATTERN = (
                         (SPLASH_LED_CONFIG.DRIPPLE_PATTERN + incre) % 4);
-                if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3){
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
-                } else{
+                
+                uint16_t flag = 0;
+                switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
+                case 0: // None
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    break;
+                case 1: // background off, wave on
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    break;
+                case 2: // background on, wave off
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                    break;
+                case 3:
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    break;
                 }
                 
-                /*
-                only in 2: background on, wave off is default in pattern
-
-                */
-                uint16_t flag = LED_FLAG_MATCH_ID | (
-                        SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 2 ?
-                            LED_FLAG_USE_ROTATE_PATTERN :
-                            LED_FLAG_USE_RGB);
                 for(int i = 4; i < LED_NUMBERS-1; ++i){
                     led_instructions[i].flags = flag;
                 }

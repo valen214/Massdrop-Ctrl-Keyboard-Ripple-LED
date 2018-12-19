@@ -1,6 +1,5 @@
 .dep
 *.o
-*.bin
 *.eep
 *.elf
 *.hex

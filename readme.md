@@ -21,7 +21,7 @@ fullstop.
 ### Key Combos:
 - `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect (None, background off wave on (default), background on wave off, rainbow wave)
 
-- `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 5 on rainbow, set to >10 and press space to see true rainbow!)
+- `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 5 on rainbow and wave off, set to >10 and press space to see true rainbow!)
 
 - `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (default: 100ms, 10ms per incre/decre, lowest: 10ms)
 

@@ -3,16 +3,16 @@
 adding LED Splash effect with the provided QMK software.
 
 ## What's different (or added) from the forked project: (root as project folder)
-+ /hid_listen.exe
-+ /massdrop_ctrl_default.bin
-+ /massdrop_ctrl_valen214.bin
-+ /massdrop_ctrl_valen_activate_on_press.bin
-+ /mdloader_linux
-+ /mdloader_windows.exe
-+ /qmktoolbox.exe
-+ /.build/*
-+ /keyboards/massdrop/ctrl/keymaps/valen214/*
-+ /keyboards/massdrop/ctrl/keymaps/valen214_activate_on_press/*
+`+ /hid_listen.exe`
+`+ /massdrop_ctrl_default.bin`
+`+ /massdrop_ctrl_valen214.bin`
+`+ /massdrop_ctrl_valen_activate_on_press.bin`
+`+ /mdloader_linux`
+`+ /mdloader_windows.exe`
+`+ /qmktoolbox.exe`
+`+ /.build/*`
+`+ /keyboards/massdrop/ctrl/keymaps/valen214/*`
+`+ /keyboards/massdrop/ctrl/keymaps/valen214_activate_on_press/*`
 
 other changes are unintentional or not important.
 
@@ -44,7 +44,7 @@ where you input the keycode to return the id of the led light that key correspon
 Therefore, ideally, changing this function alone is enough to use the code on other QMK 87 keyboards (assumption is made that the parent project from massdrop is identical to QMK's, but that's not true, I am unable to compile the code with QMK's firmware fork, didn't bother to debug).
 
 ## Known bugs/limitations
-- double click a key will reset the original "wave front"
+~~- double click a key will reset the original "wave front"~~
 - not really appealing when typing in a fast speed (I don't have a led keyboards that have splashing so I don't know what the effect should have looked like. I am just doing this by imagination. # It is easy to add limit to distance traveled by the light, I would try if it has any positive effect)
 - function keys (F1 - F12) and navigation keys (Ins, Home) are not working. (funtion keys are little bit tricky, but navigation keys are easily implemented by updating `KEY_POSITION_MAP`)
 
@@ -52,7 +52,7 @@ This project is just for fun and please don't be serious 😆.
 
 
 
--a copy of the above readme is in `/keyboards/massdrop/ctrl/`, NO-
+~~a copy of the above readme is in `/keyboards/massdrop/ctrl/`, NO~~
 
 below is the content from the original readme
 

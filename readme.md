@@ -56,7 +56,11 @@ Therefore, ideally, changing this function alone is enough to use the code on ot
 ## Known bugs/limitations
 ~~- double click a key will reset the original "wave front"~~
 - not really appealing when typing in a fast speed (I don't have a led keyboards that have splashing so I don't know what the effect should have looked like. I am just doing this by imagination. # It is easy to add limit to distance traveled by the light, I would try if it has any positive effect)
-~~- function keys (F1 - F12) and navigation keys (Ins, Home) are not working. (funtion keys are little bit tricky, but navigation keys are ~~easily implemented by updating `KEY_POSITION_MAP`)
+~~- function keys (F1 - F12) and navigation keys (Ins, Home) are not working. (funtion keys are little bit tricky, but navigation keys are ~~
+easily implemented by updating `KEY_POSITION_MAP`)
+
+- F1 to F4 will light up on the same time after pressing LCTRL, F9 to F12 will do also after pressing RCTRL
+
 
 This project is just for fun and please don't be serious 😆.
 

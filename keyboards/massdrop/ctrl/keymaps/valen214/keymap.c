@@ -80,7 +80,7 @@ print("".join([f"case KC_{c.upper()}:{chr(10)
 */
 
 // custom definitions
-#define LED_NUMBERS (4 + 87 + 1)
+#define LED_NUMBERS (87 + 1)
 typedef unsigned char _ub;
 
 
@@ -101,6 +101,13 @@ struct{
     .WAVE_PERIOD = 100,
 };
 
+#define KEY_STROKES_LENGTH 10
+struct {
+    _ub valid;
+    _ub led_id;
+    uint32_t time;
+} KEY_STROKES[KEY_STROKES_LENGTH] = {{}};
+
 /*
 
 definitions of led_instruction is in /tmk_core/protocol/arm_atsam/led_matrix.h
@@ -110,9 +117,6 @@ definitions of value of KC_* is in /tmk_core/common/keycode.h
 led_instruction_t led_instructions[LED_NUMBERS] = {
     { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN,
             .id2 = 4278190080, .id3 = 1073741823}, // underglow
-    { .flags = LED_FLAG_NULL }, // KC_ROLL_OVER => changed to KC_FN
-    { .flags = LED_FLAG_NULL }, // KC_POST_FAIL
-    { .flags = LED_FLAG_NULL }, // KC_UNDEFINED
     // the flags and ids will be calculated in matrix_init_user()
 };
 
@@ -136,8 +140,8 @@ _ub ktli(uint16_t keycode){
         18,19,20,21,22,23,24,25,26,27,          // 1 - 9, 0
         63, 1,30,34,80,28,29,45,46,47, 0,       // last 0 is KC_NONUS_HASH
         61,62,17,72,73,74,51,                   // 
-         2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,    // KC_F1 - KC_F12
-        14,15,16,31,32,33,48,49,50,             // the size keys above arrows
+         2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,    // KC_F1 = 0x3A - KC_F12
+        14,15,16,31,32,33,48,49,50,             // nav keys
         87,85,86,76,                            // right, l, d, KC_UP = 0x52
         // remaining keycode are not presented on (default) ctrl
     };
@@ -170,7 +174,7 @@ static _ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS]; // max number of keys (not ke
 // Runs just one time when the keyboard initializes.
 void matrix_init_user(void) {
     // I always thought the led pattern is not moving after start up
-    led_animation_speed += ANIMATION_SPEED_STEP * 20;
+    led_animation_speed += ANIMATION_SPEED_STEP * 15;
 
 
     print("matrix_init_user(): initialization");
@@ -261,7 +265,7 @@ void matrix_init_user(void) {
             SPLASH_LED_CONFIG.WAVE_FRONT_ON ?
             LED_FLAG_USE_ROTATE_PATTERN :
             LED_FLAG_USE_RGB);
-    for(int i = 4; i < LED_NUMBERS-1; ++i){
+    for(int i = 1; i < LED_NUMBERS; ++i){
         led_instructions[i].flags = flag;
         
         uint32_t id = 1 << ((i-1) % 32);
@@ -277,32 +281,50 @@ void matrix_init_user(void) {
     }
 
 
+    for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+        KEY_STROKES[i].valid = 0;
+        KEY_STROKES[i].led_id = 0;
+        KEY_STROKES[i].time = 0;
+    }
 }; // end of matrix_init_user(), initialization function
 
 // Runs constantly in the background, in a loop.
 
+/*
+length of the array should be a safe, large enough value
+more typically:
+longest wave time * fastest typing speed
+= 22 * WAVE_PREIOD * typing speed
+*/
+
 uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
 void matrix_scan_user(void) {
     // keyboard_leds()
-    _ub wave_front[LED_NUMBERS];
-    for(int i = 4; i < LED_NUMBERS; ++i){ // O(n^2)
-        wave_front[i] = false;
-        for(int j = 4; j < LED_NUMBERS; ++j){
-            _ub dis = DISTANCE_MAP[i][j];
-            // if((i != j) && (dis == 0)) continue;
-            uint32_t e = timer_elapsed32(LAST_PRESSED_LED_TIME[j]);
-            // number of periods that the wave takes from a to b - dis
-            // delta period
-            uint32_t dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - dis;
-            if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
-                wave_front[i] = true;
-                break;
+    _ub wave_front[LED_NUMBERS] = {};
+    for(int i = 0; i < LED_NUMBERS; ++i){
+        wave_front[i] = 0;
+    }
+    for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+        if(KEY_STROKES[i].valid){
+            uint32_t e = timer_elapsed32(KEY_STROKES[i].time);
+            _ub valid = 0;
+            _ub led_id = KEY_STROKES[i].led_id;
+            uint32_t dp;
+            for(int j = 1 ; j < LED_NUMBERS; ++j){
+                dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD -
+                        DISTANCE_MAP[led_id][j];
+                if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
+                    wave_front[j] = 1;
+                    valid = 1;
+                }
             }
+
+            KEY_STROKES[i].valid = valid;
         }
     }
 
     // print("onlist: ");
-    for(int i = 4; i < LED_NUMBERS; ++i){
+    for(int i = 1; i < LED_NUMBERS; ++i){
         // uprintf("%d ", wave_front[i]);
         if(wave_front[i] ^ SPLASH_LED_CONFIG.WAVE_FRONT_ON){
             led_instructions[i].flags =
@@ -474,9 +496,16 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case KC_RSHIFT:
         case KC_RALT:
         case 20737: // FN key
-            if (record->event.pressed) {
+            if(record->event.pressed){
                 uprintf("%d pressed\n", keycode);
-                LAST_PRESSED_LED_TIME[ktli(keycode)] = timer_read32();
+                for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                    if(!KEY_STROKES[i].valid){
+                        KEY_STROKES[i].valid = 1;
+                        KEY_STROKES[i].led_id = ktli(keycode);
+                        KEY_STROKES[i].time = timer_read32();
+                        break;
+                    }
+                }
             }
             return true;
         default:
@@ -488,7 +517,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     keycode >= 0x04 && // 4: KC_A
                     keycode <= 0x52){ // 164: KC_RIGHT
                 uprintf("%d pressed\n", keycode);
-                LAST_PRESSED_LED_TIME[ktli(keycode)] = timer_read32();
+                for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                    if(!KEY_STROKES[i].valid){
+                        KEY_STROKES[i].valid = 1;
+                        KEY_STROKES[i].led_id = ktli(keycode);
+                        KEY_STROKES[i].time = timer_read32();
+                        break;
+                    }
+                }
             }
             return true; //Process all other keycodes normally
     }

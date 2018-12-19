@@ -57,8 +57,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [2] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
-        KC_TRNS, KC_TRNS, L_SP_WD, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
-        KC_TRNS, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, \
+        KC_TRNS, L_SP_SL, L_SP_WD, L_SP_FA, KC_TRNS, KC_TRNS, KC_TRNS, L_SP_SL, L_SP_WD, L_SP_FA, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
+        KC_TRNS, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, KC_TRNS, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS \
     ),
@@ -218,12 +218,12 @@ void matrix_init_user(void) {
     int(20737) at the last row is the FN key
     */
 
-    #define KPM_HEIGHT 7
+    #define KPM_HEIGHT 6
     #define KPM_WIDTH 20
     // proportional to the real keyboard
     unsigned short KEY_POSITION_MAP[KPM_HEIGHT][KPM_WIDTH] = {
         { KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,    KC_F10,  KC_F11,  KC_F12,  KC_NO,   KC_PSCR, KC_SLCK, KC_PAUS,  },
-        { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        // { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
         { KC_NO,   KC_GRV,  KC_1,    KC_2,   KC_3,   KC_4,   KC_5,   KC_6,   KC_7,   KC_8,    KC_9,   KC_0,    KC_MINS,  KC_EQL,  KC_BSPC, KC_BSPC, KC_NO,   KC_INS,  KC_HOME, KC_PGUP,  },
         { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
         { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
@@ -337,30 +337,26 @@ uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
 void matrix_scan_user(void) {
     // keyboard_leds()
     _ub wave_front[LED_NUMBERS] = {};
-    for(int i = 0; i < LED_NUMBERS; ++i){
-        wave_front[i] = 0;
-    }
+    // for(int i = 0; i < LED_NUMBERS; ++i){
+    //     wave_front[i] = 0;
+    // }
     for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
         if(KEY_STROKES[i].valid){
             uint32_t e = timer_elapsed32(KEY_STROKES[i].time);
             _ub valid = 0;
-            _ub led_id = KEY_STROKES[i].led_id;
+            _ub l = KEY_STROKES[i].led_id;
             uint32_t dp;
             for(int j = 1 ; j < LED_NUMBERS; ++j){
-                dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD -
-                        DISTANCE_MAP[led_id][j];
-                dp *= RAINBOW_COLORS;
-                dp /= SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH;
+                dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - DISTANCE_MAP[l][j];
                 /*
                 In virtue, dp should be larger than or equal to 0
                 but dp is unsigned so never mind......
                 */
-                if(dp < RAINBOW_COLORS){
-                    wave_front[j] = 1;
+                if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
                     if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3){
-                        led_instructions[j].r = RAINBOW[dp][0]; // 0 1 2 3
-                        led_instructions[j].g = RAINBOW[dp][1]; //               18
-                        led_instructions[j].b = RAINBOW[dp][2]; // 
+                        wave_front[j] += dp;
+                    } else{
+                        wave_front[j] = 1;
                     }
                     valid = 1;
                 }
@@ -381,6 +377,12 @@ void matrix_scan_user(void) {
                 led_instructions[i].r = 0;
                 led_instructions[i].g = 0;
                 led_instructions[i].b = 0;
+            } else{
+                _ub c = (wave_front[i] * RAINBOW_COLORS /
+                        SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
+                led_instructions[i].r = RAINBOW[c][0];
+                led_instructions[i].g = RAINBOW[c][1];
+                led_instructions[i].b = RAINBOW[c][2];
             }
             led_instructions[i].flags =
                     LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
@@ -589,9 +591,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if(record->event.pressed){
                 short incre = keycode == L_SP_FA ? -1 : 1;
                 
-                SPLASH_LED_CONFIG.WAVE_PERIOD += 50 * incre;
-                if(SPLASH_LED_CONFIG.WAVE_PERIOD < 50){
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                SPLASH_LED_CONFIG.WAVE_PERIOD += 10 * incre;
+                if(SPLASH_LED_CONFIG.WAVE_PERIOD < 10){
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 10;
                 }
             }
 

@@ -16,14 +16,17 @@ adding LED Splash effect with the provided QMK software.
 
 fullstop.
 
-### (Currently Available) Settings
+## (Currently Available) Settings
 
-# Key Combos:
-- `Fn + P + A`, `Fn + P + D`: Previous/Next dripple effect (None, background off wave on (default), background on wave off, rainbow wave)
+### Key Combos:
+- `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect (None, background off wave on (default), background on wave off, rainbow wave)
 
-- `Fn + P + W`, `Fn + P + S`: Increase/Decrease dripple wave width (not recommand to set too hight (> 7) as it would slow down performance))
+- `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 5 on rainbow, set to >10 and press space to see true rainbow!)
 
-- `Fn + P + Q`, `Fn + P + E`: Decrease/Increase wave speed
+- `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (default: 100ms, 10ms per incre/decre, lowest: 10ms)
+
+`UIO` are equivalent to `QWE`
+`JKL` are equivalent to `ASD` so as to allow one hand switching
 
 
 ## Implementation:
@@ -37,14 +40,15 @@ Therefore, ideally, changing this function alone is enough to use the code on ot
 
 ## Known bugs/limitations
 ~~- double click a key will reset the original "wave front"~~
-- not really appealing when typing in a fast speed (I don't have a led keyboards that have splashing so I don't know what the effect should have looked like. I am just doing this by imagination. # It is easy to add limit to distance traveled by the light, I would try if it has any positive effect)
+
+~~- not really appealing when typing in a fast speed (I don't have a led keyboards that have splashing so I don't know what the effect should have looked like. I am just doing this by imagination.~~ # It is easy to add limit to distance traveled by the light, I would try if it has any positive effect)
 
 ~~function keys (F1 - F12) and navigation keys (Ins, Home) are not working. (funtion keys are little bit tricky, but navigation keys are~~ => easily implemented by updating `KEY_POSITION_MAP`)
 
-- F1 to F4 will light up on the same time after pressing LCTRL, F9 to F12 will do also after pressing RCTRL
+- F1 to F4 will light up on the same time after pressing LCTRL, F9 to F12 will do also after pressing RCTRL (it is more or less correct in theory)
 
 
-This project is just for fun and please don't be serious 😆.
+This project is just for fun and please don't be serious :blush:.
 
 
 ## What's different (or added) from the forked project: (root as project folder)

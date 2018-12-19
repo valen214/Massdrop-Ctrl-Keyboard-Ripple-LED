@@ -23,7 +23,14 @@ enum ctrl_keycodes {
     DBG_MOU,            //DEBUG Toggle Mouse Prints
     MD_BOOT,            //Restart into bootloader after hold timeout
 
-    L_T_SPL,           //LED Toggle Splash Mode, background on or off
+    L_SP_PR,            //LED Splash Pattern Select Previous
+    L_SP_NE,            //LED Splash Pattern Select Next
+
+    L_SP_WD,            //LED Splash Widen Wavefront width
+    L_SP_NW,            //LED Splash Narrow Wavefront width
+
+    L_SP_FA,            //LED Splash wave travel speed faster (shorter period)
+    L_SP_SL,            //LED Splash wave travel speed slower (longer period)
 };
 
 #define TG_NKRO MAGIC_TOGGLE_NKRO //Toggle 6KRO / NKRO mode
@@ -42,9 +49,17 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [1] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_MUTE, KC_TRNS, KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPLY, KC_MSTP, KC_VOLU, \
-        L_T_BR,  L_PSD,   L_BRI,   L_PSI,   KC_TRNS, KC_TRNS, KC_TRNS, U_T_AUTO,U_T_AGCR,KC_TRNS, L_T_SPL, KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPRV, KC_MNXT, KC_VOLD, \
+        L_T_BR,  L_PSD,   L_BRI,   L_PSI,   KC_TRNS, KC_TRNS, KC_TRNS, U_T_AUTO,U_T_AGCR,KC_TRNS, MO(2),   KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPRV, KC_MNXT, KC_VOLD, \
         L_T_PTD, L_PTP,   L_BRD,   L_PTN,   KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, \
         KC_TRNS, L_T_MD,  L_T_ONF, KC_TRNS, KC_TRNS, MD_BOOT, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_TRNS, \
+        KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS \
+    ),
+    [2] = LAYOUT(
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS, \
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
+        KC_TRNS, KC_TRNS, L_SP_WD, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
+        KC_TRNS, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, \
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS \
     ),
     /*
@@ -87,16 +102,20 @@ typedef unsigned char _ub;
 /*
 configuration struct for splash effect
 
+DRIPPLE_PATTERN: (0 | 1 | 2 | 3)
+    - 0: None
+    - 1: background off, wave on
+    - 2: background on, wave off
+    - 3: rainbow wave
 
-TODO: adding one more key layer for changing settings
 */
 struct{
-    bool WAVE_FRONT_ON;
+    _ub DRIPPLE_PATTERN;
     _ub WAVE_FRONT_WIDTH;
     int WAVE_PERIOD;
 
 } SPLASH_LED_CONFIG = { // this default setting is most appealing
-    .WAVE_FRONT_ON = 1,
+    .DRIPPLE_PATTERN = 1,
     .WAVE_FRONT_WIDTH = 2,
     .WAVE_PERIOD = 100,
 };
@@ -148,7 +167,7 @@ _ub ktli(uint16_t keycode){
 
     switch(keycode){ // ignore the keycode order
     case 20737:     return 82; // FN key
-    case KC_POWER:  return 83; // KC_POWER  = 0x65
+    case KC_APP:    return 83; // KC_APP  = 0x65
 
     case KC_LCTRL:  return 77; // KC_LCTRL  = 0xE0
     case KC_LSHIFT: return 64; // KC_LSHIFT = 0xE1
@@ -209,7 +228,7 @@ void matrix_init_user(void) {
         { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
         { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
         { KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT,  KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,   KC_NO,   KC_UP,   KC_NO,    },
-        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  20737,   KC_POWER, KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
+        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  20737,   KC_APP,   KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
     };
 
     /*
@@ -268,7 +287,7 @@ void matrix_init_user(void) {
     # see ktli(keycode) definition above
     */
     uint16_t flag = LED_FLAG_MATCH_ID | (
-            SPLASH_LED_CONFIG.WAVE_FRONT_ON ?
+            SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 2 ?
             LED_FLAG_USE_ROTATE_PATTERN :
             LED_FLAG_USE_RGB);
     for(int i = 1; i < LED_NUMBERS; ++i){
@@ -303,6 +322,17 @@ longest wave time * fastest typing speed
 = 22 * WAVE_PREIOD * typing speed
 */
 
+
+#define RAINBOW_COLORS 18
+const _ub RAINBOW[RAINBOW_COLORS][3] = {
+    {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
+    {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
+    {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
+    {170, 204,  34}, {105, 208,  37}, { 34, 204, 170},
+    { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
+    { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
+}; // 18
+
 uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
 void matrix_scan_user(void) {
     // keyboard_leds()
@@ -319,8 +349,19 @@ void matrix_scan_user(void) {
             for(int j = 1 ; j < LED_NUMBERS; ++j){
                 dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD -
                         DISTANCE_MAP[led_id][j];
-                if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
+                dp *= RAINBOW_COLORS;
+                dp /= SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH;
+                /*
+                In virtue, dp should be larger than or equal to 0
+                but dp is unsigned so never mind......
+                */
+                if(dp < RAINBOW_COLORS){
                     wave_front[j] = 1;
+                    if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3){
+                        led_instructions[j].r = RAINBOW[dp][0]; // 0 1 2 3
+                        led_instructions[j].g = RAINBOW[dp][1]; //               18
+                        led_instructions[j].b = RAINBOW[dp][2]; // 
+                    }
                     valid = 1;
                 }
             }
@@ -332,13 +373,35 @@ void matrix_scan_user(void) {
     // print("onlist: ");
     for(int i = 1; i < LED_NUMBERS; ++i){
         // uprintf("%d ", wave_front[i]);
-        if(wave_front[i] ^ SPLASH_LED_CONFIG.WAVE_FRONT_ON){
+        switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
+        case 0:
+        case 3:
+            if(( !wave_front[i] ) || (
+                    SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 0 )){
+                led_instructions[i].r = 0;
+                led_instructions[i].g = 0;
+                led_instructions[i].b = 0;
+            }
             led_instructions[i].flags =
                     LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
-        } else{
-            led_instructions[i].flags =
-                    LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
-            // rgb default is zero
+            break;
+        case 1:
+            if(wave_front[i]){
+                led_instructions[i].flags =
+                        LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+            } else{
+                led_instructions[i].flags =
+                        LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+            }
+            break;
+        case 2:
+            if(wave_front[i]){
+                led_instructions[i].flags =
+                        LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+            } else{
+                led_instructions[i].flags =
+                        LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+            }
         }
     }
     // print("\n");
@@ -480,20 +543,61 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
-        case L_T_SPL:
+        case L_SP_PR:
+        case L_SP_NE:
             if (record->event.pressed) {
-                SPLASH_LED_CONFIG.WAVE_FRONT_ON ^= 1;
+                _ub incre = keycode == L_SP_PR ? 3 : 1;
+                SPLASH_LED_CONFIG.DRIPPLE_PATTERN = (
+                        (SPLASH_LED_CONFIG.DRIPPLE_PATTERN + incre) % 4);
+                if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3){
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
+                } else{
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
+                }
+                
+                /*
+                only in 2: background on, wave off is default in pattern
+
+                */
                 uint16_t flag = LED_FLAG_MATCH_ID | (
-                        SPLASH_LED_CONFIG.WAVE_FRONT_ON ?
-                        LED_FLAG_USE_ROTATE_PATTERN :
-                        LED_FLAG_USE_RGB);
+                        SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 2 ?
+                            LED_FLAG_USE_ROTATE_PATTERN :
+                            LED_FLAG_USE_RGB);
                 for(int i = 4; i < LED_NUMBERS-1; ++i){
                     led_instructions[i].flags = flag;
                 }
+
+                // remove effect after changing pattern
+                for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                    KEY_STROKES[i].valid = 0;
+                }
+
             }
             return false;
+        case L_SP_WD:
+        case L_SP_NW:
+            if(record->event.pressed){
+                short incre = keycode == L_SP_WD ? 1 : -1;
+                SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH += incre;
+                if(SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH < 1){
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 1;
+                }
+            }
+            return false;
+        case L_SP_FA:
+        case L_SP_SL:
+            if(record->event.pressed){
+                short incre = keycode == L_SP_FA ? -1 : 1;
+                
+                SPLASH_LED_CONFIG.WAVE_PERIOD += 50 * incre;
+                if(SPLASH_LED_CONFIG.WAVE_PERIOD < 50){
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                }
+            }
+
+            return false;
         // these are the keys not in range 0x04 - 0x52
-        case KC_POWER:
+        case KC_APP:
         case KC_LCTRL:
         case KC_LSHIFT:
         case KC_LALT:
@@ -519,10 +623,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             for reference to key code value, see:
             /tmk_core/common/keycode.h(195): enum hid_keyboard_keypad_usage
             */
+
+            uprintf("%d pressed\n", keycode);
             if (record->event.pressed &&
                     keycode >= 0x04 && // 4: KC_A
                     keycode <= 0x52){ // 164: KC_RIGHT
-                uprintf("%d pressed\n", keycode);
                 for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
                     if(!KEY_STROKES[i].valid){
                         KEY_STROKES[i].valid = 1;

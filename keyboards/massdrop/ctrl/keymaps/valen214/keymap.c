@@ -198,12 +198,17 @@ void matrix_init_user(void) {
 
     int(20737) at the last row is the FN key
     */
-    unsigned short KEY_POSITION_MAP[5][15] = {
-        { KC_NO,  KC_GRV,    KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS,    KC_EQL,    KC_BSPC, },
-            { KC_NO,  KC_TAB,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,     KC_LBRC,    KC_RBRC,   KC_BSLS, },
-                { KC_NO,  KC_CAPS,    KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,   KC_SCLN,   KC_QUOT,   KC_ENT,    KC_ENT, },
-                    { KC_NO,  KC_LSFT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM,  KC_DOT,  KC_SLSH,   KC_RSFT,  KC_RSFT,   KC_RSFT, },
-                        { KC_LCTL,  KC_LGUI,  KC_LALT,  KC_SPC,  KC_SPC,  KC_SPC,  KC_SPC,  KC_SPC,  KC_SPC,   KC_RALT,   KC_NO,   20737,   KC_POWER,  KC_RCTL,  KC_RCTL, },
+
+    #define KPM_HEIGHT 7
+    #define KPM_WIDTH 20
+    unsigned short KEY_POSITION_MAP[KPM_HEIGHT][KPM_WIDTH] = {
+        { KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,    KC_F10,  KC_F11,  KC_F12,  KC_NO,   KC_PSCR, KC_SLCK, KC_PAUS,  },
+        { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        { KC_NO,   KC_GRV,  KC_1,    KC_2,   KC_3,   KC_4,   KC_5,   KC_6,   KC_7,   KC_8,    KC_9,   KC_0,    KC_MINS,  KC_EQL,  KC_BSPC, KC_BSPC, KC_NO,   KC_INS,  KC_HOME, KC_PGUP,  },
+        { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
+        { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        { KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT,  KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,   KC_NO,   KC_UP,   KC_NO,    },
+        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  20737,   KC_POWER, KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
     };
 
     /*
@@ -212,10 +217,10 @@ void matrix_init_user(void) {
     complexity of the below implementation ~O(n^2), n = number of keys
     */
     _ub x = 0, y = 0;
-    while(x < 15 && y < 5){
+    while(x < KPM_WIDTH && y < KPM_HEIGHT){
         _ub sl = ktli(KEY_POSITION_MAP[y][x]); // source led
-        for(_ub i = 0; i < 15; ++i){
-            for(_ub j = 0; j < 5; ++j){
+        for(_ub i = 0; i < KPM_WIDTH; ++i){
+            for(_ub j = 0; j < KPM_HEIGHT; ++j){
                 _ub tl = ktli(KEY_POSITION_MAP[j][i]); // target led
                 if(sl == tl) continue;
                 
@@ -233,7 +238,7 @@ void matrix_init_user(void) {
                 DISTANCE_MAP[tl][sl] = dis;
             }
         }
-        if(x < 14){
+        if(x < KPM_WIDTH-1){
             ++x;
         } else{ // start next row iteration
             x = 0;

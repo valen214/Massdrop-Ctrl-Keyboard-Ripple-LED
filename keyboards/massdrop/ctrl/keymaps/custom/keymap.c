@@ -119,13 +119,15 @@ const _ub RAINBOW[RAINBOW_COLORS][3] = {
 /*
 configuration struct for splash effect
 
-DRIPPLE_PATTERN: (0 | 1 | 2 | 3)
+DRIPPLE_PATTERN: (0 | 1 | 2 | 3 | 4)
     - 0: None
     - 1: background off, wave on
     - 2: background on, wave off
     - 3: rainbow wave
+    - 4: rainbow wave on rotation background
 
 */
+#define PATTERN_COUNT 5
 struct{
     _ub DRIPPLE_PATTERN;
     _ub WAVE_FRONT_WIDTH;
@@ -160,7 +162,7 @@ led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_LED] = {
 const uint16_t PROGMEM fn_actions[] = {
 
 };
-// (K)eycode (T)o (L)ed (I)d, KC_F1 => 2, KC_A => 4, ...
+// (K)eycode (T)o (L)ed (I)d, KC_F1 = 0x3A => 2, KC_A => 4, ...
 _ub ktli(uint16_t keycode){
     /*
     print("".join(
@@ -185,6 +187,9 @@ _ub ktli(uint16_t keycode){
     switch(keycode){ // ignore the keycode order
     case 20737:     return 82; // FN key
     case KC_APP:    return 83; // KC_APP  = 0x65
+
+    case KC_MS_WH_UP: return 76;
+    case KC_MS_WH_DOWN: return 86;
 
     case KC_LCTRL:  return 77; // KC_LCTRL  = 0xE0
     case KC_LSHIFT: return 64; // KC_LSHIFT = 0xE1
@@ -303,10 +308,13 @@ void matrix_init_user(void) {
     corresponding led_instruction[ktli(keycode)]:
     # see ktli(keycode) definition above
     */
-    uint16_t flag = LED_FLAG_MATCH_ID | (
-            SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 2 ?
-            LED_FLAG_USE_ROTATE_PATTERN :
-            LED_FLAG_USE_RGB);
+    uint16_t flag = LED_FLAG_MATCH_ID;
+    if(( SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 2 ) || (
+            SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 4)){
+        flag |= LED_FLAG_USE_ROTATE_PATTERN;
+    } else{
+        flag |= LED_FLAG_USE_RGB;
+    }
     for(int i = 1; i < LED_NUMBERS; ++i){
         led_instructions[i].flags = flag;
         
@@ -391,7 +399,8 @@ void matrix_scan_user(void) {
                 but dp is unsigned so never mind......
                 */
                 if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
-                    if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3){
+                    if(( SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3 ) || (
+                            SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 4 )){
                         wave_front[j] += dp;
                     } else{
                         wave_front[j] = 1;
@@ -406,47 +415,54 @@ void matrix_scan_user(void) {
     }
 
     // print("onlist: ");
+    uint16_t flag_rgb = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+    uint16_t flag_pattern = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+
     for(int i = 1; i < LED_NUMBERS; ++i){
         // uprintf("%d ", wave_front[i]);
         switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
         case 0:
-            led_instructions[i].flags =
-                    LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+            led_instructions[i].flags = flag_pattern;
             break;
         case 1:
             if(wave_front[i]){
-                led_instructions[i].flags =
-                        LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                led_instructions[i].flags = flag_pattern;
             } else{
-                led_instructions[i].flags =
-                        LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                led_instructions[i].flags = flag_rgb;
             }
             break;
         case 2:
             if(wave_front[i]){
-                led_instructions[i].flags =
-                        LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                led_instructions[i].flags = flag_rgb;
             } else{
-                led_instructions[i].flags =
-                        LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                led_instructions[i].flags = flag_pattern;
             }
             break;
         case 3:
+        case 4:
             if(wave_front[i]){
                 _ub c = (wave_front[i] * RAINBOW_COLORS /
                         SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
                 led_instructions[i].r = RAINBOW[c][0];
                 led_instructions[i].g = RAINBOW[c][1];
                 led_instructions[i].b = RAINBOW[c][2];
+                led_instructions[i].flags = flag_rgb;
+            } else if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 4){
+                // led_instructions[i].r = 255;
+                // led_instructions[i].g = 255;
+                // led_instructions[i].b = 255;
+                led_instructions[i].flags = flag_pattern;
             } else{
                 led_instructions[i].r = 0;
                 led_instructions[i].g = 0;
                 led_instructions[i].b = 0;
+                led_instructions[i].flags = flag_rgb;
             }
-            led_instructions[i].flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
             break;
         }
     }
+
+
     // print("\n");
 }; // end of matrix_scan_user (looping function)
 
@@ -588,9 +604,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case L_SP_PR:
         case L_SP_NE:
             if (record->event.pressed) {
-                _ub incre = keycode == L_SP_PR ? 3 : 1;
-                SPLASH_LED_CONFIG.DRIPPLE_PATTERN = (
-                        (SPLASH_LED_CONFIG.DRIPPLE_PATTERN + incre) % 4);
+                _ub incre = keycode == L_SP_PR ? PATTERN_COUNT-1 : 1;
+                SPLASH_LED_CONFIG.DRIPPLE_PATTERN += incre;
+                SPLASH_LED_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
                 
                 uint16_t flag = 0;
                 switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
@@ -611,6 +627,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
                     SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    break;
+                case 4:
+                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
+                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     break;
                 }
                 
@@ -658,6 +679,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case KC_RCTRL:
         case KC_RSHIFT:
         case KC_RALT:
+        case KC_MS_WH_UP:
+        case KC_MS_WH_DOWN:
         case 20737: // FN key
             if(record->event.pressed){
                 uprintf("%d pressed\n", keycode);

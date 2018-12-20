@@ -31,6 +31,9 @@ enum ctrl_keycodes {
 
     L_SP_FA,            //LED Splash wave travel speed faster (shorter period)
     L_SP_SL,            //LED Splash wave travel speed slower (longer period)
+
+    L_SP_CL,            //LED Splash wave rainbow color direction
+
 };
 
 #define TG_NKRO MAGIC_TOGGLE_NKRO //Toggle 6KRO / NKRO mode
@@ -51,8 +54,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPLY, KC_MSTP, KC_VOLU, \
         L_T_BR,  L_PSD,   L_BRI,   L_PSI,   KC_TRNS, KC_TRNS, KC_TRNS, U_T_AUTO,U_T_AGCR,KC_TRNS, MO(2),   KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPRV, KC_MNXT, KC_VOLD, \
         L_T_PTD, L_PTP,   L_BRD,   L_PTN,   KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, \
-        KC_TRNS, L_T_MD,  L_T_ONF, KC_TRNS, KC_TRNS, MD_BOOT, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_TRNS, \
-        KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS \
+        KC_TRNS, L_T_MD,  L_T_ONF, KC_TRNS, KC_TRNS, MD_BOOT, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_MS_WH_UP, \
+        KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_MS_WH_DOWN, KC_TRNS \
     ),
     [2] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS, \
@@ -74,7 +77,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     */
 };
 
+/*
 
+https://www.youtube.com/watch?v=yzLri9sUNF4&t=250
+*/
 /* python
 print("".join([f"case '{c}':n=;break;{chr(10)
         if (ord(c)-ord('a')) % 3 == 2 else ''}"
@@ -154,7 +160,7 @@ led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_LED] = {
 const uint16_t PROGMEM fn_actions[] = {
 
 };
-// (K)eycode (T)o (L)ed (I)d, KC_FN => 2, KC_A => 4, ...
+// (K)eycode (T)o (L)ed (I)d, KC_F1 => 2, KC_A => 4, ...
 _ub ktli(uint16_t keycode){
     /*
     print("".join(
@@ -352,7 +358,6 @@ void matrix_init_user(void) {
 
 }; // end of matrix_init_user(), initialization function
 
-// Runs constantly in the background, in a loop.
 
 /*
 length of the array should be a safe, large enough value
@@ -362,6 +367,10 @@ longest wave time * fastest typing speed
 */
 
 
+/*
+Runs constantly in the background, in a loop.
+https://beta.docs.qmk.fm/detailed-guides/custom_quantum_functions#matrix-scanning-code
+*/
 uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
 void matrix_scan_user(void) {
     // keyboard_leds()
@@ -445,10 +454,10 @@ void matrix_scan_user(void) {
 /* command
 
 
-make massdrop/ctrl:valen214
+make massdrop/ctrl:custom
 
 
-./.build/mdloader_windows.exe --first --download massdrop_ctrl_valen214.bin --restart
+./.build/mdloader_windows.exe --first --download massdrop_ctrl_custom.bin --restart
 
 
 */
@@ -576,7 +585,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
             }
             return false;
-
         case L_SP_PR:
         case L_SP_NE:
             if (record->event.pressed) {
@@ -640,7 +648,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     SPLASH_LED_CONFIG.WAVE_PERIOD = 10;
                 }
             }
-
             return false;
         // these are the keys not in range 0x04 - 0x52
         case KC_APP:

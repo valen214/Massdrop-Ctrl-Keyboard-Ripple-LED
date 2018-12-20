@@ -1,13 +1,16 @@
 # Massdrop CTRL Keyboard Splash LED
 
 adding LED Splash effect with the provided QMK software.
+
 demo video: https://youtu.be/W3U1SDztx1I
+
+feel free to leave comments or feature request.
 
 ## How to use:
 ### Build yourself
 1) have everything set up (to a point where you can compile and flash driver)
-2) `make massdrop/ctrl:valen214`
-3) `./.build/mdloader_windows.exe --first --download massdrop_ctrl_valen214.bin --restart`
+2) `make massdrop/ctrl:custom`
+3) `./.build/mdloader_windows.exe --first --download massdrop_ctrl_custom.bin --restart`
 (I am sorry that I am using MSYS)
 4) `Fn + B` or use the pin to reset
 5) Done
@@ -20,27 +23,46 @@ fullstop.
 ## (Currently Available) Settings
 
 ### Key Combos:
+
 - `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect (None, background off wave on (default), background on wave off, rainbow wave :rainbow:)
 
 - `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 10 on rainbow and 5 on wave off, set to >10 and press space to see true rainbow!)
 
 - `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 30~50ms, 10ms per incre/decre, lowest(fastest): 10ms)
 
+- `Hold(Fn) + Up`, `Hold(Fn) + Down`: scroll up and down (implemented with MOUSEKEY, because page up/down scrolls too fast)
+
 `UIO` are equivalent to `QWE` (the keys will light up after pressing `Fn + P`
 
 `JKL` are equivalent to `ASD` so as to allow one hand switching
 
 ### TODO:
+
 - add indicator
 
+- check out the functions from `https://beta.docs.qmk.fm/features/feature_rgblight`
+
 ## Implementation:
-**basically all changes happen only in `/keyboards/massdrop/ctrl/keymaps/valen214/keymap.c`:**
+**basically all changes happen only in `/keyboards/massdrop/ctrl/keymaps/custom/keymap.c`:**
 Inspired by [LastContinue's Post](https://www.massdrop.com/talk/9382/how-to-configure-your-ctrl-keyboard/2201429),
 by abusing `led_instructions_t` to set the led of each individual key only in `keymap.c` (It is understood to be very inefficient, but one benefit of this is being more prone to future changes (if any, ok I know there is very little) and slightly more portable (more below)).
 
 one core function is `unsigned char ktli(uint16_t keycode);`
 where you input the keycode to return the id of the led light that key correspond to (as mentioned in the post).
 Therefore, ideally, changing this function alone is enough to use the code on other QMK 87 keyboards (assumption is made that the parent project from massdrop is identical to QMK's, but that's not true, I am unable to compile the code with QMK's firmware fork, didn't bother to debug).
+
+another core function is `matrix_scan_user()`
+This is provided in the specification. This function is invoked after every
+small period, to check the time passed after a key press registered as in
+`process_record_user(keycode)` (which stores information in `KEY_STROKES`),
+against the distance between the registered key and the targeted led key.
+
+The `DISTANCE_MAP[][]` (as initialized from `matrix_init_user()`)
+recorded the distances (adjacent key as 1 unit) between each of the two keys.
+While additional algorithm is used to calibrate the distance between two keys
+which appears to be distinct in a 2D array, but adjacent in reality. (
+This process could have been cached before compiling)
+
 
 ## Known bugs/limitations
 ~~- double click a key will reset the original "wave front"~~
@@ -60,9 +82,9 @@ This project is just for fun and please don't be serious :blush:.
 
 `+ /massdrop_ctrl_default.bin`
 
-`+ /massdrop_ctrl_valen214.bin`
+`+ /massdrop_ctrl_custom.bin`
 
-`+ /massdrop_ctrl_valen_activate_on_press.bin`
+`+ /massdrop_ctrl_custom_activate_on_press.bin`
 
 `+ /mdloader_linux`
 
@@ -72,9 +94,13 @@ This project is just for fun and please don't be serious :blush:.
 
 `+ /.build/*`
 
-`+ /keyboards/massdrop/ctrl/keymaps/valen214/*`
+`+ /keyboards/massdrop/ctrl/keymaps/custom/*`
 
-`+ /keyboards/massdrop/ctrl/keymaps/valen214_activate_on_press/*`
+`+ /keyboards/massdrop/ctrl/keymaps/custom_activate_on_press/*`
+
+`! /keyboards/massdrop/ctrl/keymaps/config.h` # adding parameters for MOUSEKEY
+
+`! /keyboards/massdrop/ctrl/keymaps/rules.mk` # changing MOUSEKEY_ENABLE = yes
 
 
 other changes are unintentional or not important.

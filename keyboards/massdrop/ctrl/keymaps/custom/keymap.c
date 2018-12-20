@@ -102,7 +102,7 @@ print("".join([f"case KC_{c.upper()}:{chr(10)
 
 // custom definitions
 #define LED_NUMBERS (87 + 1)
-#define INDICATORS_LED 6
+#define INDICATORS_LED 10
 typedef unsigned char _ub;
 
 
@@ -341,12 +341,13 @@ void matrix_init_user(void) {
     /*
     indicators: QWEASD, UIOJKL
     */
-    _ub indicator_list[2][6] = {
+    _ub indicator_list[3][6] = {
         { KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D },
         { KC_U, KC_I, KC_O, KC_J, KC_K, KC_L },
+        { KC_1, KC_2, KC_3, KC_4},
     };
     flag = LED_FLAG_MATCH_ID | LED_FLAG_MATCH_LAYER | LED_FLAG_USE_RGB;
-    for(int i = LED_NUMBERS, j = 0; j < INDICATORS_LED; ++i, ++j){
+    for(int i = LED_NUMBERS, j = 0; j < 6; ++i, ++j){
         led_instructions[i].layer = 2;
         led_instructions[i].flags = flag;
         // 3 * j = RAINBOW_COLORS / INDICATORS_LED
@@ -361,6 +362,20 @@ void matrix_init_user(void) {
             case 2: led_instructions[i].id2 |= 1 << ((id-1) % 32); break;
             case 3: led_instructions[i].id3 |= 1 << ((id-1) % 32); break;
             }
+        }
+    }
+    for(int i = LED_NUMBERS + 6, j = 0; j < PATTERN_COUNT-1; ++i, ++j){
+        led_instructions[i].layer = 2;
+        led_instructions[i].flags = flag;
+        led_instructions[i].r = 255;
+        led_instructions[i].g = 255;
+        led_instructions[i].b = 255;
+        uint32_t id = ktli(indicator_list[2][j]);
+        switch((id-1) / 32){
+        case 0: led_instructions[i].id0 = 1 << ((id-1) % 32); break;
+        case 1: led_instructions[i].id1 = 1 << ((id-1) % 32); break;
+        case 2: led_instructions[i].id2 = 1 << ((id-1) % 32); break;
+        case 3: led_instructions[i].id3 = 1 << ((id-1) % 32); break;
         }
     }
 
@@ -601,13 +616,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
             }
             return false;
-        case L_SP_PR:
-        case L_SP_NE:
+        case L_SP_PR: // previous dripple pattern
+        case L_SP_NE: // next dripple pattern
             if (record->event.pressed) {
+                
+
                 _ub incre = keycode == L_SP_PR ? PATTERN_COUNT-1 : 1;
                 SPLASH_LED_CONFIG.DRIPPLE_PATTERN += incre;
                 SPLASH_LED_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
-                
+
+                _ub IND_R = 0, IND_G = 0, IND_B = 0;
+
                 uint16_t flag = 0;
                 switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
                 case 0: // None
@@ -617,29 +636,47 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
                     SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    IND_R = 255;
                     break;
                 case 2: // background on, wave off
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
                     SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                    IND_G = 255;
                     break;
-                case 3:
+                case 3: // background off, rainbow wave
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
                     SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    IND_B = 255;
                     break;
-                case 4:
+                case 4: // background on, rainbow wave
                     SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
                     SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                    IND_R = 255;
+                    IND_G = 255;
+                    IND_B = 50;
                     break;
                 }
-                
+
                 for(int i = 1; i < LED_NUMBERS; ++i){
                     led_instructions[i].flags = flag;
                     led_instructions[i].r = 0;
                     led_instructions[i].g = 0;
                     led_instructions[i].b = 0;
+                }
+                
+                for(int i = LED_NUMBERS+6, j = 0; j < PATTERN_COUNT-1; ++i, ++j){
+                    if(j+1 == SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
+                        led_instructions[i].r = IND_R;
+                        led_instructions[i].g = IND_G;
+                        led_instructions[i].b = IND_B;
+                    } else{
+                        led_instructions[i].r = 255;
+                        led_instructions[i].g = 255;
+                        led_instructions[i].b = 255;
+                    }
                 }
 
                 // remove effect after changing pattern

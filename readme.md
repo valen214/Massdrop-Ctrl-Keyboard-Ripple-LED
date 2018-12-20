@@ -24,7 +24,12 @@ fullstop.
 
 ### Key Combos:
 
-- `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect (0: None, 1: background off wave on (default), 2: background on wave off, 3: rainbow wave :rainbow:, 4: rainbow wave on rotate background)
+- `Hold(Fn + P) + A`, `Hold(Fn + P) + D`: Previous/Next dripple effect 
+  - 0: None
+  - 1: background off wave on (default)
+  - 2: background on wave off
+  - 3: rainbow wave :rainbow:
+  - 4: rainbow wave on rotate background)
 
 - `Hold(Fn + P) + W`, `Hold(Fn + P) + S`: Increase/Decrease dripple wave width (default: 2, 10 on rainbow and 5 on wave off, set to >10 and press space to see true rainbow!)
 

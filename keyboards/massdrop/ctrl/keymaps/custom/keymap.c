@@ -133,7 +133,7 @@ struct{
     _ub WAVE_FRONT_WIDTH;
     int WAVE_PERIOD;
 
-} SPLASH_LED_CONFIG = { // this default setting is most appealing
+} USER_CONFIG = { // this default setting is most appealing
     .DRIPPLE_PATTERN = 1,
     .WAVE_FRONT_WIDTH = 2,
     .WAVE_PERIOD = 50,
@@ -186,7 +186,7 @@ _ub ktli(uint16_t keycode){
 
     switch(keycode){ // ignore the keycode order
     case 20737:     return 82; // FN key
-    case KC_APP:    return 83; // KC_APP  = 0x65
+    case KC_APP:    return 83; // KC_APP    = 0x65
 
     case KC_MS_WH_UP: return 76;
     case KC_MS_WH_DOWN: return 86;
@@ -210,8 +210,7 @@ shortest distance between two keys
 
 
 */
-static _ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS]; // max number of keys (not key codes)
-
+_ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS] = {};
 // Runs just one time when the keyboard initializes.
 void matrix_init_user(void) {
     // I always thought the led pattern is not moving after start up
@@ -254,8 +253,6 @@ void matrix_init_user(void) {
     };
 
     /*
-    it's not bfs
-
     complexity of the below implementation ~O(n^2), n = number of keys
     */
     _ub x = 0, y = 0;
@@ -274,8 +271,8 @@ void matrix_init_user(void) {
                 }
                 _ub _dis = DISTANCE_MAP[sl][tl];
                 
-                if(_dis && _dis <= dis)  continue;
-                
+                if(_dis && _dis <= dis) continue;
+
                 DISTANCE_MAP[sl][tl] = dis;
                 DISTANCE_MAP[tl][sl] = dis;
             }
@@ -309,8 +306,8 @@ void matrix_init_user(void) {
     # see ktli(keycode) definition above
     */
     uint16_t flag = LED_FLAG_MATCH_ID;
-    if(( SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 2 ) || (
-            SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 4)){
+    if(( USER_CONFIG.DRIPPLE_PATTERN == 2 ) || (
+            USER_CONFIG.DRIPPLE_PATTERN == 4)){
         flag |= LED_FLAG_USE_ROTATE_PATTERN;
     } else{
         flag |= LED_FLAG_USE_RGB;
@@ -394,28 +391,26 @@ longest wave time * fastest typing speed
 Runs constantly in the background, in a loop.
 https://beta.docs.qmk.fm/detailed-guides/custom_quantum_functions#matrix-scanning-code
 */
-uint32_t LAST_PRESSED_LED_TIME[LED_NUMBERS];
+// uint32_t perf_timer[100] = {1};
 void matrix_scan_user(void) {
+    // perf_timer[perf_timer[0]] = timer_read32();
     // keyboard_leds()
     _ub wave_front[LED_NUMBERS] = {};
-    // for(int i = 0; i < LED_NUMBERS; ++i){
-    //     wave_front[i] = 0;
-    // }
     for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
         if(KEY_STROKES[i].valid){
             uint32_t e = timer_elapsed32(KEY_STROKES[i].time);
             _ub valid = 0;
             _ub l = KEY_STROKES[i].led_id;
+            short period_passed = e / USER_CONFIG.WAVE_PERIOD;
+
             unsigned short dp;
             for(int j = 1 ; j < LED_NUMBERS; ++j){
-                dp = e / SPLASH_LED_CONFIG.WAVE_PERIOD - DISTANCE_MAP[l][j];
-                /*
-                In virtue, dp should be larger than or equal to 0
-                but dp is unsigned so never mind......
-                */
-                if(dp < SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH){
-                    if(( SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 3 ) || (
-                            SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 4 )){
+                dp = period_passed - DISTANCE_MAP[l][j];
+                // In virtue, dp should be larger than or equal to 0
+                // but dp is unsigned so never mind......
+                if(dp < USER_CONFIG.WAVE_FRONT_WIDTH){
+                    if(( USER_CONFIG.DRIPPLE_PATTERN == 3 ) || (
+                            USER_CONFIG.DRIPPLE_PATTERN == 4 )){
                         wave_front[j] += dp;
                     } else{
                         wave_front[j] = 1;
@@ -423,7 +418,7 @@ void matrix_scan_user(void) {
                     valid = 1;
                 }
             }
-
+            
             // if it's never set in the loop, it would be zero
             KEY_STROKES[i].valid = valid;
         }
@@ -435,7 +430,7 @@ void matrix_scan_user(void) {
 
     for(int i = 1; i < LED_NUMBERS; ++i){
         // uprintf("%d ", wave_front[i]);
-        switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
+        switch(USER_CONFIG.DRIPPLE_PATTERN){
         case 0:
             led_instructions[i].flags = flag_pattern;
             break;
@@ -457,12 +452,12 @@ void matrix_scan_user(void) {
         case 4:
             if(wave_front[i]){
                 _ub c = (wave_front[i] * RAINBOW_COLORS /
-                        SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
+                        USER_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
                 led_instructions[i].r = RAINBOW[c][0];
                 led_instructions[i].g = RAINBOW[c][1];
                 led_instructions[i].b = RAINBOW[c][2];
                 led_instructions[i].flags = flag_rgb;
-            } else if(SPLASH_LED_CONFIG.DRIPPLE_PATTERN == 4){
+            } else if(USER_CONFIG.DRIPPLE_PATTERN == 4){
                 // led_instructions[i].r = 255;
                 // led_instructions[i].g = 255;
                 // led_instructions[i].b = 255;
@@ -477,7 +472,20 @@ void matrix_scan_user(void) {
         }
     }
 
-
+/*
+    if(perf_timer[0] == 99){
+        perf_timer[99] = timer_elapsed32(perf_timer[99]);
+        uint32_t sum = 0;
+        for(int i = 1; i < 100; ++i){
+            sum += perf_timer[i];
+        }
+        uprintf("matrix_scan_user() time used (sum of 99 invocation): %d\n", sum);
+        perf_timer[0] = 1;
+    } else{
+        perf_timer[perf_timer[0]] = timer_elapsed32(perf_timer[perf_timer[0]]);
+        perf_timer[0] += 1;
+    }
+*/
     // print("\n");
 }; // end of matrix_scan_user (looping function)
 
@@ -622,37 +630,37 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 
 
                 _ub incre = keycode == L_SP_PR ? PATTERN_COUNT-1 : 1;
-                SPLASH_LED_CONFIG.DRIPPLE_PATTERN += incre;
-                SPLASH_LED_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
+                USER_CONFIG.DRIPPLE_PATTERN += incre;
+                USER_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
 
                 _ub IND_R = 0, IND_G = 0, IND_B = 0;
 
                 uint16_t flag = 0;
-                switch(SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
+                switch(USER_CONFIG.DRIPPLE_PATTERN){
                 case 0: // None
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     break;
                 case 1: // background off, wave on
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 2;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 2;
+                    USER_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     IND_R = 255;
                     break;
                 case 2: // background on, wave off
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 5;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 5;
+                    USER_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     IND_G = 255;
                     break;
                 case 3: // background off, rainbow wave
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
+                    USER_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
                     IND_B = 255;
                     break;
                 case 4: // background on, rainbow wave
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 50;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
+                    USER_CONFIG.WAVE_PERIOD = 50;
                     flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     IND_R = 255;
                     IND_G = 255;
@@ -668,7 +676,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
                 
                 for(int i = LED_NUMBERS+6, j = 0; j < PATTERN_COUNT-1; ++i, ++j){
-                    if(j+1 == SPLASH_LED_CONFIG.DRIPPLE_PATTERN){
+                    if(j+1 == USER_CONFIG.DRIPPLE_PATTERN){
                         led_instructions[i].r = IND_R;
                         led_instructions[i].g = IND_G;
                         led_instructions[i].b = IND_B;
@@ -690,9 +698,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case L_SP_NW:
             if(record->event.pressed){
                 short incre = keycode == L_SP_WD ? 1 : -1;
-                SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH += incre;
-                if(SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH < 1){
-                    SPLASH_LED_CONFIG.WAVE_FRONT_WIDTH = 1;
+                USER_CONFIG.WAVE_FRONT_WIDTH += incre;
+                if(USER_CONFIG.WAVE_FRONT_WIDTH < 1){
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 1;
                 }
             }
             return false;
@@ -701,9 +709,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if(record->event.pressed){
                 short incre = keycode == L_SP_FA ? -1 : 1;
                 
-                SPLASH_LED_CONFIG.WAVE_PERIOD += 10 * incre;
-                if(SPLASH_LED_CONFIG.WAVE_PERIOD < 10){
-                    SPLASH_LED_CONFIG.WAVE_PERIOD = 10;
+                USER_CONFIG.WAVE_PERIOD += 10 * incre;
+                if(USER_CONFIG.WAVE_PERIOD < 10){
+                    USER_CONFIG.WAVE_PERIOD = 10;
                 }
             }
             return false;
@@ -738,9 +746,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             */
 
             uprintf("%d pressed\n", keycode);
-            if (record->event.pressed &&
-                    keycode >= 0x04 && // 4: KC_A
-                    keycode <= 0x52){ // 164: KC_RIGHT
+            if ((record->event.pressed) &&
+                    (keycode >= 0x04) && // 4: KC_A
+                    (keycode <= 0x52)){ // 164: KC_RIGHT
                 for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
                     if(!KEY_STROKES[i].valid){
                         KEY_STROKES[i].valid = 1;

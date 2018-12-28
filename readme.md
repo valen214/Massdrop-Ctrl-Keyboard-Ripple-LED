@@ -4,6 +4,8 @@ adding LED Splash effect with the provided QMK software.
 
 demo video: https://youtu.be/W3U1SDztx1I
 
+installing video: https://youtu.be/TsPV_rCVT-k
+
 feel free to leave comments or feature request.
 
 ## How to use:
@@ -17,6 +19,9 @@ feel free to leave comments or feature request.
 
 ### qmk toolbox
 1) bin file inside /.build/
+
+### graphical learner
+https://youtu.be/TsPV_rCVT-k
 
 fullstop.
 

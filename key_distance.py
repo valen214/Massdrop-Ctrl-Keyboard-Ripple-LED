@@ -214,7 +214,7 @@ for sk, dis_dict in sorted(sorted_distance_map.items()):
 print(output)
 print(f"#define KEY_LIST_MAX_DISTANCE {key_list_max_distance}")
 print(f"#define KEY_LIST_MAX_LENGTH {key_list_max_length}")
-print("_ub DISTANCE_MAP[LED_NUMBERS][KEY_LIST_MAX_DISTANCE][KEY_LIST_MAX_LENGTH+1];")
+print("_ub DISTANCE_MAP[LED_NUMBERS][KEY_LIST_MAX_DISTANCE+1][KEY_LIST_MAX_LENGTH+1];")
 
 
 valid = True

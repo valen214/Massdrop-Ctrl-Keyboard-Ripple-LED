@@ -1,1 +1,0 @@
--Wl,--gc-sections -Wl,-Map="%OUT%%PROJ_NAME%.map" -Wl,--start-group -Wl,--end-group --specs=rdimon.specs -Tlib/arm_atsam/packs/atmel/SAMD51_DFP/1.0.70/gcc/gcc/samd51j18a_flash.ld -Wl,-Map=.build/massdrop_ctrl_valen214_activate_on_press.map,--cref     -lm 

@@ -2,6 +2,8 @@
 
 #include <print.h>
 
+
+
 enum ctrl_keycodes {
     L_BRI = SAFE_RANGE, //LED Brightness Increase
     L_BRD,              //LED Brightness Decrease
@@ -51,8 +53,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
     [1] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_MUTE, KC_TRNS, KC_TRNS, \
-        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPLY, KC_MSTP, KC_VOLU, \
-        L_T_BR,  L_PSD,   L_BRI,   L_PSI,   KC_TRNS, KC_TRNS, KC_TRNS, U_T_AUTO,U_T_AGCR,KC_TRNS, MO(2),   KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPRV, KC_MNXT, KC_VOLD, \
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPLY, KC_MS_WH_UP /* KC_MSTP */, KC_VOLU, \
+        L_T_BR,  L_PSD,   L_BRI,   L_PSI,   KC_TRNS, KC_TRNS, KC_TRNS, U_T_AUTO,U_T_AGCR,KC_TRNS, MO(2),   KC_TRNS, KC_TRNS, KC_TRNS,   KC_MPRV, KC_MS_WH_DOWN /* KC_MNXT */, KC_VOLD, \
         L_T_PTD, L_PTP,   L_BRD,   L_PTN,   KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, \
         KC_TRNS, L_T_MD,  L_T_ONF, KC_TRNS, KC_TRNS, MD_BOOT, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_MS_WH_UP, \
         KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_MS_WH_DOWN, KC_TRNS \
@@ -210,7 +212,10 @@ shortest distance between two keys
 
 
 */
-_ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS] = {};
+// #define KEY_LIST_MAX_DISTANCE 23+5
+// #define KEY_LIST_MAX_LENGTH 16+5
+// _ub DISTANCE_MAP[LED_NUMBERS][KEY_LIST_MAX_DISTANCE+1][KEY_LIST_MAX_LENGTH+1];
+_ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS];
 // Runs just one time when the keyboard initializes.
 void matrix_init_user(void) {
     // I always thought the led pattern is not moving after start up
@@ -256,6 +261,7 @@ void matrix_init_user(void) {
     complexity of the below implementation ~O(n^2), n = number of keys
     */
     _ub x = 0, y = 0;
+    // _ub raw_distance_map[LED_NUMBERS][LED_NUMBERS];
     while(x < KPM_WIDTH && y < KPM_HEIGHT){
         _ub sl = ktli(KEY_POSITION_MAP[y][x]); // source led
         for(_ub i = 0; i < KPM_WIDTH; ++i){
@@ -284,6 +290,20 @@ void matrix_init_user(void) {
             ++y;
         }
     }
+
+    // for(int i = 1; i < LED_NUMBERS; ++i){
+    //     for(int j = 1; j < LED_NUMBERS; ++j){
+    //         if(i == j) continue;
+    //         _ub dis = raw_distance_map[i][j];
+    //         if(dis > DISTANCE_MAP[i][0][0]) DISTANCE_MAP[i][0][0] = dis;
+    //         DISTANCE_MAP[i][dis][0] += 1;
+    //         DISTANCE_MAP[i][dis][
+    //             DISTANCE_MAP[i][dis][0]
+    //         ] = j;
+    //     }
+    // }
+
+
     /*
     finished initializing key distances
 
@@ -401,7 +421,30 @@ void matrix_scan_user(void) {
             uint32_t e = timer_elapsed32(KEY_STROKES[i].time);
             _ub valid = 0;
             _ub l = KEY_STROKES[i].led_id;
-            short period_passed = e / USER_CONFIG.WAVE_PERIOD;
+            int period_passed = e / USER_CONFIG.WAVE_PERIOD;
+
+            // for(int start = period_passed - USER_CONFIG.WAVE_FRONT_WIDTH + 1,
+            //         j = 0; j < USER_CONFIG.WAVE_FRONT_WIDTH; ++start, ++j){
+            //     uprintf("start: %d\n", start);
+            //     if(start < 0) continue;
+            //     uprintf("DISTANCE_MAP[%d][0][0]: %d\n", l, DISTANCE_MAP[l][0][0]);
+            //     if(start >= DISTANCE_MAP[l][0][0]) break;
+            //     if(start == 0){
+            //         if(( USER_CONFIG.DRIPPLE_PATTERN == 3 ) || (
+            //                 USER_CONFIG.DRIPPLE_PATTERN == 4 )){
+            //             wave_front[l] += 1;
+            //         } else{
+            //             wave_front[l] = 1;
+            //         }
+            //         valid = 1;
+            //         continue;
+            //     }
+            //     for(_ub k = 1; k < DISTANCE_MAP[l][start][0]; ++k){
+            //         uprintf("wave_front[DISTANCE_MAP[%d][%d][%d]] += 1\n", l, start, k);
+            //         wave_front[DISTANCE_MAP[l][start][k]] += 1;
+            //         valid = 1;
+            //     }
+            // }
 
             unsigned short dp;
             for(int j = 1 ; j < LED_NUMBERS; ++j){

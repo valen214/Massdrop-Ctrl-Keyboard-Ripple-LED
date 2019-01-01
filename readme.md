@@ -12,15 +12,6 @@ installing video: https://youtu.be/TsPV_rCVT-k
 feel free to leave comments or feature request.
 
 ## How to use:
-~~### Build yourself (The one knows probably knows)~~
-~~1) have everything set up (to a point where you can compile and flash driver)
-2) cd to project root folder
-~~3) `make massdrop/ctrl:custom`
-4) `./.build/mdloader_windows.exe --first --download massdrop_ctrl_custom.bin --restart`
-~~(I am sorry that I am using MSYS)
-5) `Fn + B` or use the pin to reset
-~~6) Done~~
-
 ### simple installer
 1) download the `download_and_install.bat` file and just execute (double click) it
 

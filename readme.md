@@ -19,10 +19,6 @@ feel free to leave comments or feature request.
 ### qmk toolbox
 1) bin file inside /.build/
 
-~~### graphical learner
-https://youtu.be/TsPV_rCVT-k~~
-
-
 ## (Currently Available) Settings
 
 ### Key Combos:

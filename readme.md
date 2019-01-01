@@ -8,16 +8,24 @@ adding LED Splash effect with the provided QMK software.
 demo video: https://youtu.be/W3U1SDztx1I
 
 installing video: https://youtu.be/TsPV_rCVT-k
+(or more recommanded to use the simple installer)
 
 feel free to leave comments or feature request.
 
 ## How to use:
+
 ### simple installer
+
 1) download the `download_and_install.bat` file and just execute (double click) it
 
 
 ### qmk toolbox
+
 1) bin file inside /.build/
+
+
+
+
 
 ## (Currently Available) Settings
 
@@ -35,6 +43,8 @@ feel free to leave comments or feature request.
 - `Hold(Fn + P) + Q`, `Hold(Fn + P) + E`: Decrease/Increase wave speed (actually it's wave period, default: 30~50ms, 10ms per incre/decre, lowest(fastest): 10ms)
 
 - `Hold(Fn) + Up`, `Hold(Fn) + Down`: scroll up and down (implemented with MOUSEKEY, because page up/down scrolls too fast)
+
+- `Hold(Fn + P) + Tab`: Toggle between two rainbow color preset
 
 `UIO` are equivalent to `QWE` (the keys will light up after pressing `Fn + P`
 
@@ -69,13 +79,7 @@ This process could have been cached before compiling)
 
 
 ## Known bugs/limitations
-~~- double click a key will reset the original "wave front"~~
-
-~~- not really appealing when typing in a fast speed (I don't have a led keyboards that have splashing so I don't know what the effect should have looked like. I am just doing this by imagination.~~ # It is easy to add limit to distance traveled by the light, I would try if it has any positive effect)
-
-~~function keys (F1 - F12) and navigation keys (Ins, Home) are not working. (funtion keys are little bit tricky, but navigation keys are~~ => easily implemented by updating `KEY_POSITION_MAP`)
-
-- F1 to F4 will light up on the same time after pressing LCTRL, F9 to F12 will do also after pressing RCTRL (it is more or less correct in theory)
+- please raise a ticket if you find one
 
 
 This project is just for fun and please don't be serious :blush:.

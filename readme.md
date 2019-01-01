@@ -1,5 +1,8 @@
 # Massdrop CTRL Keyboard Splash LED
 
+## The rainbow color is now made brighter! (closer to what the default pattern looks)
+(but because I quite like the original one, I am going to add toggle switch)
+
 adding LED Splash effect with the provided QMK software.
 
 demo video: https://youtu.be/W3U1SDztx1I

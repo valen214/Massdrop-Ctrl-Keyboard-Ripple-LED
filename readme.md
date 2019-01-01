@@ -11,11 +11,12 @@ feel free to leave comments or feature request.
 ## How to use:
 ### Build yourself
 1) have everything set up (to a point where you can compile and flash driver)
-2) `make massdrop/ctrl:custom`
-3) `./.build/mdloader_windows.exe --first --download massdrop_ctrl_custom.bin --restart`
+2) cd to project root folder
+3) `make massdrop/ctrl:custom`
+4) `./.build/mdloader_windows.exe --first --download massdrop_ctrl_custom.bin --restart`
 (I am sorry that I am using MSYS)
-4) `Fn + B` or use the pin to reset
-5) Done
+5) `Fn + B` or use the pin to reset
+6) Done
 
 ### qmk toolbox
 1) bin file inside /.build/

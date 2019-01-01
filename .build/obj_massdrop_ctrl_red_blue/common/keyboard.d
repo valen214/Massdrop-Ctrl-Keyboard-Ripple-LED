@@ -1,4 +1,4 @@
-.build/obj_massdrop_ctrl_custom/common/keyboard.o: \
+.build/obj_massdrop_ctrl_red_blue/common/keyboard.o: \
  tmk_core/common/keyboard.c keyboards/massdrop/ctrl/config.h \
  quantum/config_common.h quantum/audio/song_list.h \
  quantum/audio/musical_notes.h tmk_core/common/keyboard.h \

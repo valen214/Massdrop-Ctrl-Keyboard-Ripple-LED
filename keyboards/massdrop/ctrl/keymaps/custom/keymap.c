@@ -109,7 +109,7 @@ typedef unsigned char _ub;
 
 
 #define RAINBOW_COLORS 18
-const _ub RAINBOW[RAINBOW_COLORS][3] = {
+const _ub RAINBOW[RAINBOW_COLORS][3] = { // light color
     {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
     {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
     {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
@@ -117,6 +117,14 @@ const _ub RAINBOW[RAINBOW_COLORS][3] = {
     { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
     { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
 }; // 18
+const _ub RAINBOW_BRIGHT[RAINBOW_COLORS][3] = {
+    {255,   0,   0}, {255,   0,   0}, {255, 127,   0},
+    {255, 127,   0}, {255, 255,   0}, {255, 255,   0},
+    {120, 255,   0}, {120, 255,   0}, {  0, 255,   0},
+    {  0, 255,   0}, {  0, 255, 120}, {  0, 255, 120},
+    {  0,   0, 255}, {  0,   0, 255}, { 75,   0, 130},
+    { 75,   0, 130}, { 43,   0, 130}, { 43,   0, 130},
+};
 
 /*
 configuration struct for splash effect
@@ -493,9 +501,9 @@ void matrix_scan_user(void) {
             if(wave_front[i]){
                 _ub c = (wave_front[i] * RAINBOW_COLORS /
                         USER_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
-                led_instructions[i].r = RAINBOW[c][0];
-                led_instructions[i].g = RAINBOW[c][1];
-                led_instructions[i].b = RAINBOW[c][2];
+                led_instructions[i].r = RAINBOW_BRIGHT[c][0];
+                led_instructions[i].g = RAINBOW_BRIGHT[c][1];
+                led_instructions[i].b = RAINBOW_BRIGHT[c][2];
                 led_instructions[i].flags = flag_rgb;
             } else if(USER_CONFIG.DRIPPLE_PATTERN == 4){
                 // led_instructions[i].r = 255;

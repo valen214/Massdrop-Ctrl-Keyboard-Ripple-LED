@@ -99,18 +99,20 @@ led_setup_t leds_rainbow_s[] = {
     { .end = 1 },
 };
 
-led_setup_t leds_blue_red[] = {
+/*
+led_setup_t leds_red_blue[] = { // it's actually blue red
     { .hs = 0,  .he = 42,  .rs = 0,   .re = 0,   .gs = 0, .ge = 0, .bs = 255, .be = 255, .ef = EF_NONE },
     { .hs = 42, .he = 100, .rs = 255, .re = 255, .gs = 0, .ge = 0, .bs = 0,   .be = 0,   .ef = EF_NONE },
     { .end = 1 },
 };
+*/
 
 //Add new LED animations here using one from above as example
 //The last entry must be { .end = 1 }
 //Add the new animation name to the list below following its format
 
 void *led_setups[] = {
-    leds_blue_red,
+    // leds_red_blue,
     leds_rainbow_s,
     leds_rainbow_ns,
     leds_teal_salmon,

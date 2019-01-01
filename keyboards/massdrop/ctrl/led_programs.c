@@ -100,8 +100,8 @@ led_setup_t leds_rainbow_s[] = {
 };
 
 led_setup_t leds_blue_red[] = {
-    { .hs = 0,  .he = 50,  .rs = 0,   .re = 0,   .gs = 0, .ge = 0, .bs = 255, .be = 255, .ef = EF_NONE },
-    { .hs = 50, .he = 100, .rs = 255, .re = 255, .gs = 0, .ge = 0, .bs = 0,   .be = 0,   .ef = EF_NONE },
+    { .hs = 0,  .he = 42,  .rs = 0,   .re = 0,   .gs = 0, .ge = 0, .bs = 255, .be = 255, .ef = EF_NONE },
+    { .hs = 42, .he = 100, .rs = 255, .re = 255, .gs = 0, .ge = 0, .bs = 0,   .be = 0,   .ef = EF_NONE },
     { .end = 1 },
 };
 

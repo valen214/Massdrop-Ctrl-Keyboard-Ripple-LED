@@ -91,17 +91,7 @@ This project is just for fun and please don't be serious :blush:.
 ## What's different (or added) from the forked project: (root as project folder)
 `+ /hid_listen.exe`
 
-`+ /massdrop_ctrl_default.bin`
-
-`+ /massdrop_ctrl_custom.bin`
-
-`+ /massdrop_ctrl_custom_activate_on_press.bin`
-
-`+ /mdloader_linux`
-
-`+ /mdloader_windows.exe`
-
-`+ /qmktoolbox.exe`
+`+ /key_distance.py`
 
 `+ /.build/*`
 

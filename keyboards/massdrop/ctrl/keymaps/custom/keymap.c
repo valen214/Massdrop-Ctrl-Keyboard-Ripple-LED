@@ -169,7 +169,7 @@ definitions of value of KC_* is in /tmk_core/common/keycode.h
 */
 led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_LED] = {
     { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN,
-            .id2 = 4278190080, .id3 = 1073741823}, // underglow
+            .id2 = 4286578688, .id3 = 1073741823}, // underglow
     // the flags and ids will be calculated in matrix_init_user()
 };
 
@@ -308,12 +308,6 @@ void matrix_init_user(void) {
 
     now start doing led_instructions
     */
-    
-    // underglow // repeated definition
-    led_instructions[0].flags =
-            LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
-    led_instructions[0].id2 = 4278190080;
-    led_instructions[0].id3 = 1073741823;
 
     /*
     suppose to iterate 87 times for a 87 keys keyboard

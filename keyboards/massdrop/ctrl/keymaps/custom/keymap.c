@@ -89,9 +89,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 #define LED_NUMBERS (NUMBER_OF_KEYS + 1)
-#define CONTROL_LED_COUNT 8
-#define PATTERN_COUNT 5
-#define INDICATORS_LED (CONTROL_LED_COUNT+PATTERN_COUNT)
+#define PATTERN_COUNT 6
+#define INDICATORS_LED 20
 typedef unsigned char _ub;
 
 
@@ -123,6 +122,7 @@ DRIPPLE_PATTERN: (0 | 1 | 2 | 3 | 4)
     - 2: background on, wave off
     - 3: rainbow wave
     - 4: rainbow wave on rotation background
+    - 5: activate on press then diminish
 
 */
 struct{
@@ -130,12 +130,14 @@ struct{
     _ub WAVE_FRONT_WIDTH;
     int WAVE_PERIOD;
     _ub RAINBOW_TYPE;
+    _ub TRAVEL_DISTANCE;
 
 } USER_CONFIG = { // this default setting is most appealing
-    .DRIPPLE_PATTERN = 1,
-    .WAVE_FRONT_WIDTH = 2,
+    .DRIPPLE_PATTERN = 2,
+    .WAVE_FRONT_WIDTH = 3,
     .WAVE_PERIOD = 50,
     .RAINBOW_TYPE = 0,
+    .TRAVEL_DISTANCE = 20,
 };
 
 #define KEY_STROKES_LENGTH 10
@@ -163,6 +165,7 @@ const uint16_t PROGMEM fn_actions[] = {};
 _ub KEYCODE_TO_LED_ID[256];
 _ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS];
 
+
 _ub ktli(uint16_t keycode){
 
     if(keycode < 256){
@@ -176,6 +179,10 @@ _ub ktli(uint16_t keycode){
 
     return 0;
 };
+
+
+
+
 
 void add_led_instructions_id(uint16_t instruction_index, uint32_t id){
     uint16_t i = instruction_index;
@@ -195,7 +202,14 @@ void set_led_instructions_id(uint16_t instruction_index, uint32_t id){
     add_led_instructions_id(i, id);
 }
 
+
+
+
+
+
 void matrix_init_user(void) {
+
+
     uint16_t LED_MAP[MATRIX_ROWS][MATRIX_COLS] = LAYOUT(
             1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
             20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,
@@ -250,6 +264,12 @@ void matrix_init_user(void) {
         }
     }
 
+
+
+
+
+
+
     /*
     suppose to iterate 87 times for a 87 keys keyboard
     as there are 87 led_structions with LED_FLAG_MATCH_ID
@@ -271,7 +291,11 @@ void matrix_init_user(void) {
         set_led_instructions_id(i, i);
     }
 
-#define INDICATORS_NUMBER 28
+
+
+
+
+#define INDICATORS_NUMBER 30
     struct indicator_t {
         int instruction_index_offset;
         int layer;
@@ -295,12 +319,14 @@ void matrix_init_user(void) {
         { 7,  2, KC_CAPS, RAINBOW[14] },
         { 7,  2, KC_H,    RAINBOW[14] },
 #define PATTERN_INDICATOR_OFFSET 8
+        { 8,  2, KC_GRV,  RAINBOW[17] }, // no pattern
         { 8,  2, KC_1,    RAINBOW[17] }, // pattern 1
         { 8,  2, KC_2,    RAINBOW[17] },
         { 8,  2, KC_3,    RAINBOW[17] },
         { 8,  2, KC_4,    RAINBOW[17] },
+        { 8,  2, KC_5,    RAINBOW[17] },
 #define ACTIVE_PATTERN_INDICATOR_OFFSET 9
-        { 9,  2, KC_NO,   RAINBOW[0]  }, // active pattern
+        { 9,  2, KC_2,   RAINBOW[0]  }, // active pattern
         { 10, 1, KC_Q,    RAINBOW[0]  },
         { 10, 1, KC_W,    RAINBOW[0]  },
         { 10, 1, KC_E,    RAINBOW[0]  },
@@ -309,7 +335,7 @@ void matrix_init_user(void) {
         { 10, 1, KC_A,    RAINBOW[0]  },
         { 10, 1, KC_D,    RAINBOW[0]  },
     };
-
+    // make sure max offset is less than INDICATORS_LED
 
     flag = LED_FLAG_MATCH_ID | LED_FLAG_MATCH_LAYER | LED_FLAG_USE_RGB;
     for(int i = 0; i < INDICATORS_NUMBER; ++i){
@@ -379,12 +405,16 @@ void matrix_scan_user(void) {
                 dp = period_passed - DISTANCE_MAP[l][j];
                 // In virtue, dp should be larger than or equal to 0
                 // but dp is unsigned so never mind......
-                if(dp < USER_CONFIG.WAVE_FRONT_WIDTH){
-                    if(( USER_CONFIG.DRIPPLE_PATTERN == 3 ) || (
-                            USER_CONFIG.DRIPPLE_PATTERN == 4 )){
+                if(( dp < USER_CONFIG.WAVE_FRONT_WIDTH ) && (
+                        DISTANCE_MAP[l][j] < USER_CONFIG.TRAVEL_DISTANCE)){
+                    switch(USER_CONFIG.DRIPPLE_PATTERN){
+                    case 3:
+                    case 4:
                         wave_front[j] += dp;
-                    } else{
+                        break;
+                    default:
                         wave_front[j] = 1;
+                        break;
                     }
                     alive = 1;
                 }
@@ -409,11 +439,17 @@ void matrix_scan_user(void) {
             if(wave_front[i]){
                 led_instructions[i].flags = flag_pattern;
             } else{
+                led_instructions[i].r = 0;
+                led_instructions[i].g = 0;
+                led_instructions[i].b = 0;
                 led_instructions[i].flags = flag_rgb;
             }
             break;
         case 2:
             if(wave_front[i]){
+                led_instructions[i].r = 0;
+                led_instructions[i].g = 0;
+                led_instructions[i].b = 0;
                 led_instructions[i].flags = flag_rgb;
             } else{
                 led_instructions[i].flags = flag_pattern;
@@ -440,6 +476,15 @@ void matrix_scan_user(void) {
                 led_instructions[i].flags = flag_rgb;
             }
             break;
+        case 5:
+            if(wave_front[i]){
+                led_instructions[i].r = 255;
+                led_instructions[i].g = 255;
+                led_instructions[i].b = 255;
+                led_instructions[i].flags = flag_rgb;
+            } else{
+                led_instructions[i].flags = flag_pattern;
+            }
         }
     }
 
@@ -617,9 +662,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 USER_CONFIG.DRIPPLE_PATTERN += incre;
                 USER_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
 
+                if(USER_CONFIG.DRIPPLE_PATTERN <= 4){
+                    USER_CONFIG.TRAVEL_DISTANCE = 20;
+                }
+
                 _ub indicator_key = 0;
                 switch(USER_CONFIG.DRIPPLE_PATTERN){
                 case 0: // None
+                    indicator_key = KC_GRV;
                     break;
                 case 1: // background off, wave on
                     USER_CONFIG.WAVE_FRONT_WIDTH = 2;
@@ -640,6 +690,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     USER_CONFIG.WAVE_PERIOD = 50;
                     indicator_key = KC_4;
+                    break;
+                case 5:
+                    USER_CONFIG.TRAVEL_DISTANCE = 1;
+                    indicator_key = KC_5;
                     break;
                 }
 

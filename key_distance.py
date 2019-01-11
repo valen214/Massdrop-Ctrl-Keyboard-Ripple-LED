@@ -227,3 +227,20 @@ if valid:
     print("valid result")
 else:
     print("invalid result")
+
+
+
+
+
+
+
+
+
+
+
+
+print("\n" * 2 + "="*80)
+print("white fade")
+from math import *
+a = [ceil(255 * cos(pi / 2 / 18 * i)) for i in range(18)]
+print(", ".join([(f"{{ {i:3}, {i:3}, {i:3} }}") for i in a]))

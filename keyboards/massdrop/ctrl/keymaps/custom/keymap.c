@@ -94,9 +94,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 typedef unsigned char _ub;
 
 
-#define RAINBOW_COLORS 18
-_ub (*RAINBOW)[3];
-_ub RAINBOW_LIGHT[RAINBOW_COLORS][3] = { // light color
+#define COLOR_PATTERN_COUNT 18
+_ub (*COLOR_PATTERN)[3];
+_ub RAINBOW_LIGHT[COLOR_PATTERN_COUNT][3] = { // light color
     {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
     {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
     {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
@@ -104,13 +104,21 @@ _ub RAINBOW_LIGHT[RAINBOW_COLORS][3] = { // light color
     { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
     { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
 }; // 18
-_ub RAINBOW_BRIGHT[RAINBOW_COLORS][3] = {
+_ub RAINBOW_BRIGHT[COLOR_PATTERN_COUNT][3] = {
     {255,   0,   0}, {255,   0,   0}, {255, 127,   0},
     {255, 127,   0}, {255, 255,   0}, {255, 255,   0},
     {120, 255,   0}, {120, 255,   0}, {  0, 255,   0},
     {  0, 255,   0}, {  0, 255, 120}, {  0, 255, 120},
     {  0,   0, 255}, {  0,   0, 255}, { 75,   0, 130},
     { 75,   0, 130}, { 43,   0, 130}, { 43,   0, 130},
+};
+_ub WHITE_FADE[COLOR_PATTERN_COUNT][3] = { // cos curve
+    { 255, 255, 255 }, { 255, 255, 255 }, { 252, 252, 252 },
+    { 247, 247, 247 }, { 240, 240, 240 }, { 232, 232, 232 },
+    { 221, 221, 221 }, { 209, 209, 209 }, { 196, 196, 196 },
+    { 181, 181, 181 }, { 164, 164, 164 }, { 147, 147, 147 },
+    { 128, 128, 128 }, { 108, 108, 108 }, {  88,  88,  88 },
+    {  66,  66,  66 }, {  45,  45,  45 }, {  23,  23,  23 },
 };
 
 /*
@@ -239,9 +247,9 @@ void matrix_init_user(void) {
 
     led_animation_speed += ANIMATION_SPEED_STEP * 15;
     if(USER_CONFIG.RAINBOW_TYPE % 2){
-        RAINBOW = &RAINBOW_LIGHT[0];
+        COLOR_PATTERN = &RAINBOW_LIGHT[0];
     } else{
-        RAINBOW = &RAINBOW_BRIGHT[0];
+        COLOR_PATTERN = &RAINBOW_BRIGHT[0];
     }
 
     const float unit_distance = 0.75; // unit distance
@@ -302,38 +310,38 @@ void matrix_init_user(void) {
         uint16_t key;
         _ub *rgb;
     } INDICATORS[INDICATORS_NUMBER] = {
-        { 0,  2, KC_Q,    RAINBOW[0]  },
-        { 0,  2, KC_U,    RAINBOW[0]  },
-        { 1,  2, KC_W,    RAINBOW[2]  },
-        { 1,  2, KC_I,    RAINBOW[2]  },
-        { 2,  2, KC_E,    RAINBOW[4]  },
-        { 2,  2, KC_O,    RAINBOW[4]  },
-        { 3,  2, KC_A,    RAINBOW[6]  },
-        { 3,  2, KC_J,    RAINBOW[6]  },
-        { 4,  2, KC_S,    RAINBOW[8]  },
-        { 4,  2, KC_K,    RAINBOW[8]  },
-        { 5,  2, KC_D,    RAINBOW[10] },
-        { 5,  2, KC_L,    RAINBOW[10] },
-        { 6,  2, KC_TAB,  RAINBOW[12] },
-        { 6,  2, KC_Y,    RAINBOW[12] },
-        { 7,  2, KC_CAPS, RAINBOW[14] },
-        { 7,  2, KC_H,    RAINBOW[14] },
+        { 0,  2, KC_Q,    COLOR_PATTERN[0]  },
+        { 0,  2, KC_U,    COLOR_PATTERN[0]  },
+        { 1,  2, KC_W,    COLOR_PATTERN[2]  },
+        { 1,  2, KC_I,    COLOR_PATTERN[2]  },
+        { 2,  2, KC_E,    COLOR_PATTERN[4]  },
+        { 2,  2, KC_O,    COLOR_PATTERN[4]  },
+        { 3,  2, KC_A,    COLOR_PATTERN[6]  },
+        { 3,  2, KC_J,    COLOR_PATTERN[6]  },
+        { 4,  2, KC_S,    COLOR_PATTERN[8]  },
+        { 4,  2, KC_K,    COLOR_PATTERN[8]  },
+        { 5,  2, KC_D,    COLOR_PATTERN[10] },
+        { 5,  2, KC_L,    COLOR_PATTERN[10] },
+        { 6,  2, KC_TAB,  COLOR_PATTERN[12] },
+        { 6,  2, KC_Y,    COLOR_PATTERN[12] },
+        { 7,  2, KC_CAPS, COLOR_PATTERN[14] },
+        { 7,  2, KC_H,    COLOR_PATTERN[14] },
 #define PATTERN_INDICATOR_OFFSET 8
-        { 8,  2, KC_GRV,  RAINBOW[17] }, // no pattern
-        { 8,  2, KC_1,    RAINBOW[17] }, // pattern 1
-        { 8,  2, KC_2,    RAINBOW[17] },
-        { 8,  2, KC_3,    RAINBOW[17] },
-        { 8,  2, KC_4,    RAINBOW[17] },
-        { 8,  2, KC_5,    RAINBOW[17] },
+        { 8,  2, KC_GRV,  COLOR_PATTERN[17] }, // no pattern
+        { 8,  2, KC_1,    COLOR_PATTERN[17] }, // pattern 1
+        { 8,  2, KC_2,    COLOR_PATTERN[17] },
+        { 8,  2, KC_3,    COLOR_PATTERN[17] },
+        { 8,  2, KC_4,    COLOR_PATTERN[17] },
+        { 8,  2, KC_5,    COLOR_PATTERN[17] },
 #define ACTIVE_PATTERN_INDICATOR_OFFSET 9
-        { 9,  2, KC_2,   RAINBOW[0]  }, // active pattern
-        { 10, 1, KC_Q,    RAINBOW[0]  },
-        { 10, 1, KC_W,    RAINBOW[0]  },
-        { 10, 1, KC_E,    RAINBOW[0]  },
-        { 10, 1, KC_P,    RAINBOW[0]  },
-        { 10, 1, KC_S,    RAINBOW[0]  },
-        { 10, 1, KC_A,    RAINBOW[0]  },
-        { 10, 1, KC_D,    RAINBOW[0]  },
+        { 9,  2, KC_2,   COLOR_PATTERN[0]  }, // active pattern
+        { 10, 1, KC_Q,    COLOR_PATTERN[0]  },
+        { 10, 1, KC_W,    COLOR_PATTERN[0]  },
+        { 10, 1, KC_E,    COLOR_PATTERN[0]  },
+        { 10, 1, KC_P,    COLOR_PATTERN[0]  },
+        { 10, 1, KC_S,    COLOR_PATTERN[0]  },
+        { 10, 1, KC_A,    COLOR_PATTERN[0]  },
+        { 10, 1, KC_D,    COLOR_PATTERN[0]  },
     };
     // make sure max offset is less than INDICATORS_LED
 
@@ -410,6 +418,7 @@ void matrix_scan_user(void) {
                     switch(USER_CONFIG.DRIPPLE_PATTERN){
                     case 3:
                     case 4:
+                    case 5:
                         wave_front[j] += dp;
                         break;
                     default:
@@ -429,62 +438,68 @@ void matrix_scan_user(void) {
     uint16_t flag_rgb = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
     uint16_t flag_pattern = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
 
+    // enum failed
+    #define USE_PATTERN 0
+    #define BLACK_RGB 1
+    #define COLOR_RGB 2
     for(int i = 1; i < LED_NUMBERS; ++i){
+        _ub handle_type = USE_PATTERN, c = 0;
         // uprintf("%d ", wave_front[i]);
         switch(USER_CONFIG.DRIPPLE_PATTERN){
         case 0:
-            led_instructions[i].flags = flag_pattern;
+            handle_type = USE_PATTERN;
             break;
         case 1:
             if(wave_front[i]){
-                led_instructions[i].flags = flag_pattern;
+                handle_type = USE_PATTERN;
             } else{
-                led_instructions[i].r = 0;
-                led_instructions[i].g = 0;
-                led_instructions[i].b = 0;
-                led_instructions[i].flags = flag_rgb;
+                handle_type = BLACK_RGB;
             }
             break;
         case 2:
             if(wave_front[i]){
-                led_instructions[i].r = 0;
-                led_instructions[i].g = 0;
-                led_instructions[i].b = 0;
-                led_instructions[i].flags = flag_rgb;
+                handle_type = BLACK_RGB;
             } else{
-                led_instructions[i].flags = flag_pattern;
+                handle_type = USE_PATTERN;
             }
             break;
         case 3:
         case 4:
             if(wave_front[i]){
-                _ub c = (wave_front[i] * RAINBOW_COLORS /
-                        USER_CONFIG.WAVE_FRONT_WIDTH) % RAINBOW_COLORS;
-                led_instructions[i].r = RAINBOW[c][0];
-                led_instructions[i].g = RAINBOW[c][1];
-                led_instructions[i].b = RAINBOW[c][2];
-                led_instructions[i].flags = flag_rgb;
+                handle_type = COLOR_RGB;
             } else if(USER_CONFIG.DRIPPLE_PATTERN == 4){
-                // led_instructions[i].r = 255;
-                // led_instructions[i].g = 255;
-                // led_instructions[i].b = 255;
-                led_instructions[i].flags = flag_pattern;
+                handle_type = USE_PATTERN;
             } else{
-                led_instructions[i].r = 0;
-                led_instructions[i].g = 0;
-                led_instructions[i].b = 0;
-                led_instructions[i].flags = flag_rgb;
+                handle_type = BLACK_RGB;
             }
             break;
         case 5:
             if(wave_front[i]){
-                led_instructions[i].r = 255;
-                led_instructions[i].g = 255;
-                led_instructions[i].b = 255;
-                led_instructions[i].flags = flag_rgb;
+                handle_type = COLOR_RGB;
             } else{
-                led_instructions[i].flags = flag_pattern;
+                handle_type = USE_PATTERN;
             }
+            break;
+        }
+
+        switch(handle_type){
+        case USE_PATTERN:
+            led_instructions[i].flags = flag_pattern;
+            break;
+        case BLACK_RGB:
+            led_instructions[i].r = 0;
+            led_instructions[i].g = 0;
+            led_instructions[i].b = 0;
+            led_instructions[i].flags = flag_rgb;
+            break;
+        case COLOR_RGB:
+            c = (wave_front[i] * COLOR_PATTERN_COUNT /
+                    USER_CONFIG.WAVE_FRONT_WIDTH) % COLOR_PATTERN_COUNT;
+            led_instructions[i].r = COLOR_PATTERN[c][0];
+            led_instructions[i].g = COLOR_PATTERN[c][1];
+            led_instructions[i].b = COLOR_PATTERN[c][2];
+            led_instructions[i].flags = flag_rgb;
+            break;
         }
     }
 
@@ -664,6 +679,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
                 if(USER_CONFIG.DRIPPLE_PATTERN <= 4){
                     USER_CONFIG.TRAVEL_DISTANCE = 20;
+                    COLOR_PATTERN = &RAINBOW_BRIGHT[0];
+                    USER_CONFIG.WAVE_PERIOD = 50;
                 }
 
                 _ub indicator_key = 0;
@@ -673,26 +690,25 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     break;
                 case 1: // background off, wave on
                     USER_CONFIG.WAVE_FRONT_WIDTH = 2;
-                    USER_CONFIG.WAVE_PERIOD = 50;
                     indicator_key = KC_1;
                     break;
                 case 2: // background on, wave off
                     USER_CONFIG.WAVE_FRONT_WIDTH = 5;
-                    USER_CONFIG.WAVE_PERIOD = 50;
                     indicator_key = KC_2;
                     break;
                 case 3: // background off, rainbow wave
                     USER_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    USER_CONFIG.WAVE_PERIOD = 50;
                     indicator_key = KC_3;
                     break;
                 case 4: // background on, rainbow wave
                     USER_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    USER_CONFIG.WAVE_PERIOD = 50;
                     indicator_key = KC_4;
                     break;
                 case 5:
+                    COLOR_PATTERN = &WHITE_FADE[0];
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     USER_CONFIG.TRAVEL_DISTANCE = 1;
+                    USER_CONFIG.WAVE_PERIOD = 100;
                     indicator_key = KC_5;
                     break;
                 }
@@ -735,9 +751,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if(record->event.pressed){
                 USER_CONFIG.RAINBOW_TYPE += 1;
                 if(USER_CONFIG.RAINBOW_TYPE % 2){
-                    RAINBOW = &RAINBOW_LIGHT[0];
+                    COLOR_PATTERN = &RAINBOW_LIGHT[0];
                 } else{
-                    RAINBOW = &RAINBOW_BRIGHT[0];
+                    COLOR_PATTERN = &RAINBOW_BRIGHT[0];
                 }
             }
             return false;

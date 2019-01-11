@@ -1,7 +1,5 @@
 #include QMK_KEYBOARD_H
 
-#include <config_led.h>
-#include <math.h>
 #include <print.h>
 
 enum ctrl_keycodes {
@@ -38,14 +36,6 @@ enum ctrl_keycodes {
     L_SP_TR,            //LEB Splash rainbow color preset toggle
 
 };
-
-
-#if ISSI3733_LED_COUNT == 119
-#   define NUMBER_OF_KEYS 87
-#elif ISSI3733_LED_COUNT == 105
-#   define NUMBER_OF_KEYS 67
-#endif
-
 
 #define TG_NKRO MAGIC_TOGGLE_NKRO //Toggle 6KRO / NKRO mode
 
@@ -88,7 +78,31 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     */
 };
 
-#define LED_NUMBERS (NUMBER_OF_KEYS + 1)
+/*
+
+https://www.youtube.com/watch?v=yzLri9sUNF4&t=250
+*/
+/* python
+print("".join([f"case '{c}':n=;break;{chr(10)
+        if (ord(c)-ord('a')) % 3 == 2 else ''}"
+        for c in "abcdefghijklmnopqrstuvwxyz"]))
+        
+        
+a to z
+52,69,67,54,37,55,56,57,42,58,59,60,71,70,43,44,35,38,53,39,41,68,36,66,40,65
+
+print("\n".join([f"{{ .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_PATTERN, .id{
+        (int(n)-1)//32} = {1 << ((int(n) - 1) % 32)} }}," for n in
+        ('52,69,67,54,37,55,56,57,42,58,59,60,71,70,43,' +
+        '44,35,38,53,39,41,68,36,66,40,65').split(",")]))
+        
+print("".join([f"case KC_{c.upper()}:{chr(10)
+        if (ord(c)-ord('a')) % 7 == 6 else ''}"
+        for c in "abcdefghijklmnopqrstuvwxyz"]))
+*/
+
+// custom definitions
+#define LED_NUMBERS (87 + 1)
 #define CONTROL_LED_COUNT 8
 #define PATTERN_COUNT 5
 #define INDICATORS_LED (CONTROL_LED_COUNT+PATTERN_COUNT)
@@ -140,7 +154,7 @@ struct{
 
 #define KEY_STROKES_LENGTH 10
 struct {
-    _ub alive;
+    _ub valid;
     _ub led_id;
     uint32_t time;
 } KEY_STROKES[KEY_STROKES_LENGTH] = {{}};
@@ -159,70 +173,57 @@ led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_LED] = {
 
 
 const uint16_t PROGMEM fn_actions[] = {};
-
-_ub KEYCODE_TO_LED_ID[256];
-_ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS];
-
+// (K)eycode (T)o (L)ed (I)d, KC_F1 = 0x3A => 2, KC_A => 4, ...
 _ub ktli(uint16_t keycode){
+    /*
+    print("".join(
+            [f"case KC_{c.upper()}:return {ord(c)-ord('a'): >2};{
+            chr(10) if (ord(c)-ord('a')) % 3 == 2 else ''}"
+            for c in "abcdefghijklmnopqrstuvwxyz"]))
+    
+    */
+    static _ub keycode_to_led_id[0x52 + 1] = {
+        0, 0, 0, 0,
+        52,69,67,54,37,55,56,57,42,58,59,60,71, // a - m
+        70,43,44,35,38,53,39,41,68,36,66,40,65, // n - z
+        18,19,20,21,22,23,24,25,26,27,          // 1 - 9, 0
+        63, 1,30,34,80,28,29,45,46,47, 0,       // last 0 is KC_NONUS_HASH
+        61,62,17,72,73,74,51,                   // 
+         2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,    // KC_F1 = 0x3A - KC_F12
+        14,15,16,31,32,33,48,49,50,             // nav keys
+        87,85,86,76,                            // right, l, d, KC_UP = 0x52
+        // remaining keycode are not presented on (default) ctrl
+    };
 
-    if(keycode < 256){
-        // the array is initialized in `matrix_init_user()`
-        return KEYCODE_TO_LED_ID[keycode];
+    switch(keycode){ // ignore the keycode order
+    // case L_SP_TR:   return keycode_to_led_id[KC_TAB];
+    // case L_SP_PD:   return keycode_to_led_id[KC_CAPS];
+    
+    case 20737:     return 82; // FN key
+    case KC_APP:    return 83; // KC_APP    = 0x65
+    
+    case KC_LCTRL:  return 77; // KC_LCTRL  = 0xE0
+    case KC_LSHIFT: return 64; // KC_LSHIFT = 0xE1
+    case KC_LALT:   return 79; // KC_LALT   = 0xE2
+    case KC_LGUI:   return 78; // KC_LGUI   = 0xE3
+    case KC_RCTRL:  return 84;
+    case KC_RSHIFT: return 75;
+    case KC_RALT:   return 81;
+    case KC_RGUI:   return 0; // not exists on ctrl
     }
 
-    switch(keycode){
-    case 20737: return 82;
+    if(0x04 <= keycode && keycode <= (0x52 + 5)){
+        return keycode_to_led_id[keycode];
     }
-
-    return 0;
+    return 0; // I'm afraid '-1' will break something
 };
+/*
+shortest distance between two keys
 
-void add_led_instructions_id(uint16_t instruction_index, uint32_t id){
-    uint16_t i = instruction_index;
-    switch((id-1) / 32){
-    case 0: led_instructions[i].id0 |= 1 << ((id-1) % 32); break;
-    case 1: led_instructions[i].id1 |= 1 << ((id-1) % 32); break;
-    case 2: led_instructions[i].id2 |= 1 << ((id-1) % 32); break;
-    case 3: led_instructions[i].id3 |= 1 << ((id-1) % 32); break;
-    }
-}
-void set_led_instructions_id(uint16_t instruction_index, uint32_t id){
-    uint16_t i = instruction_index;
-    led_instructions[i].id0 = 0;
-    led_instructions[i].id1 = 0;
-    led_instructions[i].id2 = 0;
-    led_instructions[i].id3 = 0;
-    add_led_instructions_id(i, id);
-}
 
+*/
+_ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS];
 void matrix_init_user(void) {
-    uint16_t LED_MAP[MATRIX_ROWS][MATRIX_COLS] = LAYOUT(
-            1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
-            20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,
-            36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,
-            52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,
-#if NUMBER_OF_KEYS >= 87
-            68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87
-#endif
-    );
-
-    uint16_t key = 0;
-    for(_ub y = 0; y < MATRIX_ROWS; ++y){
-        for(_ub x = 0; x < MATRIX_COLS; ++x){
-            key = keymaps[0][y][x];
-            if(key < 256){
-                KEYCODE_TO_LED_ID[key] = LED_MAP[y][x];
-            }
-        }
-    }
-
-
-
-
-
-
-
-
     led_animation_speed += ANIMATION_SPEED_STEP * 15;
     if(USER_CONFIG.RAINBOW_TYPE % 2){
         RAINBOW = &RAINBOW_LIGHT[0];
@@ -230,25 +231,80 @@ void matrix_init_user(void) {
         RAINBOW = &RAINBOW_BRIGHT[0];
     }
 
-    const float unit_distance = 0.75; // unit distance
-    float norm_dis = 0.0; // normalized distance
 
-    // ./tmk_core/protocol/arm_atsam/led_matrix.c: line 53
-    issi3733_led_t led_map[ISSI3733_LED_COUNT+1] = ISSI3733_LED_MAP;
+    print("matrix_init_user(): initialization");
+    /*
+    initialize key distances
+    I am not sure if MO(1) < unsigned char max
+    MO(1) is larger than max_unsigned_short
 
-    for(_ub i = 0; i < NUMBER_OF_KEYS; ++i){
-        for(_ub j = i+1; j < NUMBER_OF_KEYS; ++j){
-            norm_dis = sqrt(
-                    (led_map[i].x - led_map[j].x) *
-                    (led_map[i].x - led_map[j].x) +
-                    (led_map[i].y - led_map[j].y) *
-                    (led_map[i].y - led_map[j].y)
-            ) / unit_distance;
-                    
-            DISTANCE_MAP[i+1][j+1] = (_ub)norm_dis;
-            DISTANCE_MAP[j+1][i+1] = (_ub)norm_dis;
+    I will add comment to explain the structure of this KEY_POSITION_MAP later,
+    one key feature that utilizing it is the 'if' statement below:
+    `
+    if(i < x && j > y){
+        dis -= dx < dy ? dx : dy; // min(dx, dy)
+    }
+    `
+
+    This is still a temporary solution for now (
+        but not likely to change in the near futre),
+    I hope if someone can provide me a better solution (
+        like pos of the leds are actually specified in one of the headers)
+
+    int(20737) at the last row is the FN key
+    */
+
+    #define KPM_HEIGHT 6
+    #define KPM_WIDTH 20
+    // proportional to the real keyboard
+    unsigned short KEY_POSITION_MAP[KPM_HEIGHT][KPM_WIDTH] = {
+        { KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,    KC_F10,  KC_F11,  KC_F12,  KC_NO,   KC_PSCR, KC_SLCK, KC_PAUS,  },
+        // { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        { KC_NO,   KC_GRV,  KC_1,    KC_2,   KC_3,   KC_4,   KC_5,   KC_6,   KC_7,   KC_8,    KC_9,   KC_0,    KC_MINS,  KC_EQL,  KC_BSPC, KC_BSPC, KC_NO,   KC_INS,  KC_HOME, KC_PGUP,  },
+        { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
+        { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        { KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT,  KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,   KC_NO,   KC_UP,   KC_NO,    },
+        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  20737,   KC_APP,   KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
+    };
+
+    /*
+    complexity of the below implementation ~O(n^2), n = number of keys
+    */
+    _ub x = 0, y = 0;
+    while(x < KPM_WIDTH && y < KPM_HEIGHT){
+        _ub sl = ktli(KEY_POSITION_MAP[y][x]); // source led
+        for(_ub i = 0; i < KPM_WIDTH; ++i){
+            for(_ub j = 0; j < KPM_HEIGHT; ++j){
+                _ub tl = ktli(KEY_POSITION_MAP[j][i]); // target led
+                if(sl == tl) continue;
+                
+                _ub dx = abs(i - x), dy = abs(j - y);
+
+                _ub dis = dx + dy;
+                if(i < x && j > y){ // core algorithm
+                    dis -= dx < dy ? dx : dy; // min(dx, dy)
+                }
+                _ub _dis = DISTANCE_MAP[sl][tl];
+                
+                if(_dis && _dis <= dis) continue;
+
+                DISTANCE_MAP[sl][tl] = dis;
+                DISTANCE_MAP[tl][sl] = dis;
+            }
+        }
+        if(x < KPM_WIDTH-1){
+            ++x;
+        } else{ // start next row iteration
+            x = 0;
+            ++y;
         }
     }
+
+    /*
+    finished initializing key distances
+
+    now start doing led_instructions
+    */
 
     /*
     suppose to iterate 87 times for a 87 keys keyboard
@@ -268,60 +324,64 @@ void matrix_init_user(void) {
     }
     for(int i = 1; i < LED_NUMBERS; ++i){
         led_instructions[i].flags = flag;
-        set_led_instructions_id(i, i);
+        
+        uint32_t id = 1 << ((i-1) % 32);
+        switch((i-1) / 32){
+        case 0: led_instructions[i].id0 = id; break;
+        case 1: led_instructions[i].id1 = id; break;
+        case 2: led_instructions[i].id2 = id; break;
+        case 3: led_instructions[i].id3 = id; break;
+        }
     }
 
-#define INDICATORS_NUMBER 28
-    struct indicator_t {
-        int instruction_index_offset;
-        int layer;
-        uint16_t key;
-        _ub *rgb;
-    } INDICATORS[INDICATORS_NUMBER] = {
-        { 0,  2, KC_Q,    RAINBOW[0]  },
-        { 0,  2, KC_U,    RAINBOW[0]  },
-        { 1,  2, KC_W,    RAINBOW[2]  },
-        { 1,  2, KC_I,    RAINBOW[2]  },
-        { 2,  2, KC_E,    RAINBOW[4]  },
-        { 2,  2, KC_O,    RAINBOW[4]  },
-        { 3,  2, KC_A,    RAINBOW[6]  },
-        { 3,  2, KC_J,    RAINBOW[6]  },
-        { 4,  2, KC_S,    RAINBOW[8]  },
-        { 4,  2, KC_K,    RAINBOW[8]  },
-        { 5,  2, KC_D,    RAINBOW[10] },
-        { 5,  2, KC_L,    RAINBOW[10] },
-        { 6,  2, KC_TAB,  RAINBOW[12] },
-        { 6,  2, KC_Y,    RAINBOW[12] },
-        { 7,  2, KC_CAPS, RAINBOW[14] },
-        { 7,  2, KC_H,    RAINBOW[14] },
-#define PATTERN_INDICATOR_OFFSET 8
-        { 8,  2, KC_1,    RAINBOW[17] }, // pattern 1
-        { 8,  2, KC_2,    RAINBOW[17] },
-        { 8,  2, KC_3,    RAINBOW[17] },
-        { 8,  2, KC_4,    RAINBOW[17] },
-#define ACTIVE_PATTERN_INDICATOR_OFFSET 9
-        { 9,  2, KC_NO,   RAINBOW[0]  }, // active pattern
-        { 10, 1, KC_Q,    RAINBOW[0]  },
-        { 10, 1, KC_W,    RAINBOW[0]  },
-        { 10, 1, KC_E,    RAINBOW[0]  },
-        { 10, 1, KC_P,    RAINBOW[0]  },
-        { 10, 1, KC_S,    RAINBOW[0]  },
-        { 10, 1, KC_A,    RAINBOW[0]  },
-        { 10, 1, KC_D,    RAINBOW[0]  },
+
+    for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+        KEY_STROKES[i].valid = 0;
+        KEY_STROKES[i].led_id = 0;
+        KEY_STROKES[i].time = 0;
+    }
+
+
+    /*
+    indicators: QWEASD, UIOJKL
+    */
+    _ub indicator_list[3][CONTROL_LED_COUNT] = {
+        { KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D, KC_TAB, KC_CAPS },
+        { KC_U, KC_I, KC_O, KC_J, KC_K, KC_L, KC_Y,   KC_H    },
+        { KC_1, KC_2, KC_3, KC_4},
     };
-
-
     flag = LED_FLAG_MATCH_ID | LED_FLAG_MATCH_LAYER | LED_FLAG_USE_RGB;
-    for(int i = 0; i < INDICATORS_NUMBER; ++i){
-        struct indicator_t __config = INDICATORS[i];
-        
-        int j = LED_NUMBERS + __config.instruction_index_offset;
-        led_instructions[j].layer = __config.layer;
-        led_instructions[j].flags = flag;
-        led_instructions[j].r = __config.rgb[0];
-        led_instructions[j].g = __config.rgb[1];
-        led_instructions[j].b = __config.rgb[2];
-        add_led_instructions_id(j, ktli(__config.key));
+    for(int i = LED_NUMBERS, j = 0; j < CONTROL_LED_COUNT; ++i, ++j){
+        led_instructions[i].layer = 2;
+        led_instructions[i].flags = flag;
+        int k = j * RAINBOW_COLORS / CONTROL_LED_COUNT;
+        led_instructions[i].r = RAINBOW[k][0];
+        led_instructions[i].g = RAINBOW[k][1];
+        led_instructions[i].b = RAINBOW[k][2];
+        for(_ub k = 0; k < 2; ++k){
+            uint32_t id = ktli(indicator_list[k][j]);
+            switch((id-1) / 32){
+            case 0: led_instructions[i].id0 |= 1 << ((id-1) % 32); break;
+            case 1: led_instructions[i].id1 |= 1 << ((id-1) % 32); break;
+            case 2: led_instructions[i].id2 |= 1 << ((id-1) % 32); break;
+            case 3: led_instructions[i].id3 |= 1 << ((id-1) % 32); break;
+            }
+        }
+    }
+    for(int i = LED_NUMBERS + CONTROL_LED_COUNT, j = 0;
+            j < PATTERN_COUNT-1; ++i, ++j){
+        led_instructions[i].layer = 2;
+        led_instructions[i].flags = flag;
+        led_instructions[i].r = 255;
+        led_instructions[i].g = 255;
+        led_instructions[i].b = 255;
+        uint32_t id = ktli(indicator_list[2][j]);
+        switch((id-1) / 32){
+        case 0: led_instructions[i].id0 = 1 << ((id-1) % 32); break;
+        case 1: led_instructions[i].id1 = 1 << ((id-1) % 32); break;
+        case 2: led_instructions[i].id2 = 1 << ((id-1) % 32); break;
+        case 3: led_instructions[i].id3 = 1 << ((id-1) % 32); break;
+        }
     }
     led_instructions[LED_NUMBERS + INDICATORS_LED - 1].end = 1;
 }; // end of matrix_init_user(), initialization function
@@ -345,9 +405,9 @@ void matrix_scan_user(void) {
     // keyboard_leds()
     _ub wave_front[LED_NUMBERS] = {};
     for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
-        if(KEY_STROKES[i].alive){
+        if(KEY_STROKES[i].valid){
             uint32_t e = timer_elapsed32(KEY_STROKES[i].time);
-            _ub alive = 0;
+            _ub valid = 0;
             _ub l = KEY_STROKES[i].led_id;
             int period_passed = e / USER_CONFIG.WAVE_PERIOD;
 
@@ -364,13 +424,13 @@ void matrix_scan_user(void) {
             //         } else{
             //             wave_front[l] = 1;
             //         }
-            //         alive = 1;
+            //         valid = 1;
             //         continue;
             //     }
             //     for(_ub k = 1; k < DISTANCE_MAP[l][start][0]; ++k){
             //         uprintf("wave_front[DISTANCE_MAP[%d][%d][%d]] += 1\n", l, start, k);
             //         wave_front[DISTANCE_MAP[l][start][k]] += 1;
-            //         alive = 1;
+            //         valid = 1;
             //     }
             // }
 
@@ -386,12 +446,12 @@ void matrix_scan_user(void) {
                     } else{
                         wave_front[j] = 1;
                     }
-                    alive = 1;
+                    valid = 1;
                 }
             }
             
             // if it's never set in the loop, it would be zero
-            KEY_STROKES[i].alive = alive;
+            KEY_STROKES[i].valid = valid;
         }
     }
 
@@ -478,11 +538,6 @@ make massdrop/ctrl:custom
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t key_timer;
-
-
-    if(record->event.pressed){
-        uprintf("%d pressed\n", keycode);
-    }
 
     switch (keycode) {
         case L_BRI:
@@ -600,14 +655,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
             }
             return false;
-
-
-
-
-
-
-
-        
         case L_SP_PR: // previous dripple pattern
         case L_SP_NE: // next dripple pattern
             if (record->event.pressed) {
@@ -617,40 +664,64 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 USER_CONFIG.DRIPPLE_PATTERN += incre;
                 USER_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
 
-                _ub indicator_key = 0;
+                _ub IND_R = 0, IND_G = 0, IND_B = 0;
+
+                uint16_t flag = 0;
                 switch(USER_CONFIG.DRIPPLE_PATTERN){
                 case 0: // None
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
                     break;
                 case 1: // background off, wave on
                     USER_CONFIG.WAVE_FRONT_WIDTH = 2;
                     USER_CONFIG.WAVE_PERIOD = 50;
-                    indicator_key = KC_1;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    IND_R = 255;
                     break;
                 case 2: // background on, wave off
                     USER_CONFIG.WAVE_FRONT_WIDTH = 5;
                     USER_CONFIG.WAVE_PERIOD = 50;
-                    indicator_key = KC_2;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                    IND_G = 255;
                     break;
                 case 3: // background off, rainbow wave
                     USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     USER_CONFIG.WAVE_PERIOD = 50;
-                    indicator_key = KC_3;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+                    IND_B = 255;
                     break;
                 case 4: // background on, rainbow wave
                     USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     USER_CONFIG.WAVE_PERIOD = 50;
-                    indicator_key = KC_4;
+                    flag = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
+                    IND_R = 68;
+                    IND_G = 34;
+                    IND_B = 153;
                     break;
                 }
 
-                set_led_instructions_id(
-                        LED_NUMBERS + ACTIVE_PATTERN_INDICATOR_OFFSET,
-                        ktli(indicator_key));
+                for(int i = 1; i < LED_NUMBERS; ++i){
+                    led_instructions[i].flags = flag;
+                    led_instructions[i].r = 0;
+                    led_instructions[i].g = 0;
+                    led_instructions[i].b = 0;
+                }
                 
+                for(int i = LED_NUMBERS+CONTROL_LED_COUNT, j = 0;
+                        j < PATTERN_COUNT-1; ++i, ++j){
+                    if(j+1 == USER_CONFIG.DRIPPLE_PATTERN){
+                        led_instructions[i].r = IND_R;
+                        led_instructions[i].g = IND_G;
+                        led_instructions[i].b = IND_B;
+                    } else{
+                        led_instructions[i].r = 255;
+                        led_instructions[i].g = 255;
+                        led_instructions[i].b = 255;
+                    }
+                }
 
                 // remove effect after changing pattern
                 for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
-                    KEY_STROKES[i].alive = 0;
+                    KEY_STROKES[i].valid = 0;
                 }
 
             }
@@ -690,22 +761,43 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case L_SP_PD:
         
             return false;
+        case KC_APP:
+        case KC_LCTRL:
+        case KC_LSHIFT:
+        case KC_LALT:
+        case KC_LGUI:
+        case KC_RCTRL:
+        case KC_RSHIFT:
+        case KC_RALT:
+        case 20737: // FN key
+            if(record->event.pressed){
+                uprintf("%d pressed\n", keycode);
+                for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                    if(!KEY_STROKES[i].valid){
+                        KEY_STROKES[i].valid = 1;
+                        KEY_STROKES[i].led_id = ktli(keycode);
+                        KEY_STROKES[i].time = timer_read32();
+                        break;
+                    }
+                }
+            }
+            return true;
         default:
             /*
             for reference to key code value, see:
             /tmk_core/common/keycode.h(195): enum hid_keyboard_keypad_usage
             */
 
-            if (record->event.pressed){
-                _ub led_id = ktli(keycode);
-                if(led_id){
-                    for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
-                        if(!KEY_STROKES[i].alive){
-                            KEY_STROKES[i].alive = 1;
-                            KEY_STROKES[i].led_id = led_id;
-                            KEY_STROKES[i].time = timer_read32();
-                            break;
-                        }
+            uprintf("%d pressed\n", keycode);
+            if ((record->event.pressed) &&
+                    (keycode >= 0x04) && // 4: KC_A
+                    (keycode <= 0x52)){ // 164: KC_RIGHT
+                for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                    if(!KEY_STROKES[i].valid){
+                        KEY_STROKES[i].valid = 1;
+                        KEY_STROKES[i].led_id = ktli(keycode);
+                        KEY_STROKES[i].time = timer_read32();
+                        break;
                     }
                 }
             }

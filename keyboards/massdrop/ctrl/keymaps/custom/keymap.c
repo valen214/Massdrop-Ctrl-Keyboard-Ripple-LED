@@ -34,8 +34,8 @@ enum ctrl_keycodes {
     L_SP_FA,            //LED Splash wave travel speed faster (shorter period)
     L_SP_SL,            //LED Splash wave travel speed slower (longer period)
 
-    L_SP_PD,            //LED Splash wave rainbow pattern direction
-    L_SP_TR,            //LEB Splash rainbow color preset toggle
+    L_CP_PR,            //LED Color Pattern Select Previous
+    L_CP_NX,            //LEB Color Pattern Select Next
 
 };
 
@@ -71,8 +71,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [2] = LAYOUT(
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
-        L_SP_TR, L_SP_SL, L_SP_WD, L_SP_FA, KC_TRNS, KC_TRNS, L_SP_TR, L_SP_SL, L_SP_WD, L_SP_FA, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
-        L_SP_PD, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, L_SP_PD, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, KC_TRNS, \
+        L_CP_NX, L_SP_SL, L_SP_WD, L_SP_FA, KC_TRNS, KC_TRNS, L_CP_NX, L_SP_SL, L_SP_WD, L_SP_FA, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,   KC_TRNS, KC_TRNS, KC_TRNS, \
+        L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, KC_TRNS, KC_TRNS, KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, TG_NKRO, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,                              KC_TRNS, \
         KC_TRNS, KC_TRNS, KC_TRNS,                   KC_TRNS,                            KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,            KC_TRNS, KC_TRNS, KC_TRNS \
     ),
@@ -88,43 +88,50 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     */
 };
 
+typedef uint8_t _ub;
+
+#define COLOR_PATTERN_RGB_COUNT 18
+_ub COLOR_PATTERNS[][COLOR_PATTERN_RGB_COUNT][3] = {
+    { // default rainbow color
+        {255,   0,   0}, {255,   0,   0}, {255, 127,   0},
+        {255, 127,   0}, {255, 255,   0}, {255, 255,   0},
+        {120, 255,   0}, {120, 255,   0}, {  0, 255,   0},
+        {  0, 255,   0}, {  0, 255, 120}, {  0, 255, 120},
+        {  0,   0, 255}, {  0,   0, 255}, { 75,   0, 130},
+        { 75,   0, 130}, { 43,   0, 130}, { 43,   0, 130},
+    }, { // light rainbow color
+        {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
+        {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
+        {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
+        {170, 204,  34}, {105, 208,  37}, { 34, 204, 170},
+        { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
+        { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
+    }, { // white flat
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+    }, { // white fade, cos curve
+        {255, 255, 255}, {255, 255, 255}, {252, 252, 252},
+        {247, 247, 247}, {240, 240, 240}, {232, 232, 232},
+        {221, 221, 221}, {209, 209, 209}, {196, 196, 196},
+        {181, 181, 181}, {164, 164, 164}, {147, 147, 147},
+        {128, 128, 128}, {108, 108, 108}, { 88,  88,  88},
+        { 66,  66,  66}, { 45,  45,  45}, { 23,  23,  23},
+    }, 
+};
+const _ub COLOR_PATTERNS_COUNT = sizeof(COLOR_PATTERNS) / sizeof(COLOR_PATTERNS[0]);
+
+
 #define LED_NUMBERS (NUMBER_OF_KEYS + 1)
-#define PATTERN_COUNT 6
-#define INDICATORS_LED 20
-typedef unsigned char _ub;
 
-
-#define COLOR_PATTERN_COUNT 18
-_ub (*COLOR_PATTERN)[3];
-_ub RAINBOW_LIGHT[COLOR_PATTERN_COUNT][3] = { // light color
-    {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
-    {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
-    {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
-    {170, 204,  34}, {105, 208,  37}, { 34, 204, 170},
-    { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
-    { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
-}; // 18
-_ub RAINBOW_BRIGHT[COLOR_PATTERN_COUNT][3] = {
-    {255,   0,   0}, {255,   0,   0}, {255, 127,   0},
-    {255, 127,   0}, {255, 255,   0}, {255, 255,   0},
-    {120, 255,   0}, {120, 255,   0}, {  0, 255,   0},
-    {  0, 255,   0}, {  0, 255, 120}, {  0, 255, 120},
-    {  0,   0, 255}, {  0,   0, 255}, { 75,   0, 130},
-    { 75,   0, 130}, { 43,   0, 130}, { 43,   0, 130},
-};
-_ub WHITE_FADE[COLOR_PATTERN_COUNT][3] = { // cos curve
-    { 255, 255, 255 }, { 255, 255, 255 }, { 252, 252, 252 },
-    { 247, 247, 247 }, { 240, 240, 240 }, { 232, 232, 232 },
-    { 221, 221, 221 }, { 209, 209, 209 }, { 196, 196, 196 },
-    { 181, 181, 181 }, { 164, 164, 164 }, { 147, 147, 147 },
-    { 128, 128, 128 }, { 108, 108, 108 }, {  88,  88,  88 },
-    {  66,  66,  66 }, {  45,  45,  45 }, {  23,  23,  23 },
-};
 
 /*
 configuration struct for splash effect
 
-DRIPPLE_PATTERN: (0 | 1 | 2 | 3 | 4)
+DRIPPLE_PATTERN: (0 ~ 5)
     - 0: None
     - 1: background off, wave on
     - 2: background on, wave off
@@ -137,14 +144,14 @@ struct{
     _ub DRIPPLE_PATTERN;
     _ub WAVE_FRONT_WIDTH;
     int WAVE_PERIOD;
-    _ub RAINBOW_TYPE;
+    _ub COLOR_PATTERN_INDEX;
     _ub TRAVEL_DISTANCE;
 
 } USER_CONFIG = { // this default setting is most appealing
     .DRIPPLE_PATTERN = 2,
     .WAVE_FRONT_WIDTH = 3,
     .WAVE_PERIOD = 50,
-    .RAINBOW_TYPE = 0,
+    .COLOR_PATTERN_INDEX = 0,
     .TRAVEL_DISTANCE = 20,
 };
 
@@ -161,10 +168,50 @@ definitions of led_instruction is in /tmk_core/protocol/arm_atsam/led_matrix.h
 definitions of value of KC_* is in /tmk_core/common/keycode.h
 
 */
-led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_LED] = {
+#define INDICATOR_INSTRUCTION( \
+        offset, layer, id0, id1, id2, id3, r, g, b \
+) [LED_NUMBERS + offset] = { \
+    LED_FLAG_MATCH_ID | LED_FLAG_MATCH_LAYER | LED_FLAG_USE_RGB, \
+    id0, id1, id2, id3, layer, r, g, b, 0, 0 \
+}
+
+#define INDICATORS_GROUP_NUMBER 21
+led_instruction_t led_instructions[LED_NUMBERS + INDICATORS_GROUP_NUMBER + 1] = {
     { .flags = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN,
             .id2 = 4286578688, .id3 = 1073741823}, // underglow
     // the flags and ids will be calculated in matrix_init_user()
+
+    // INDICATOR_INSTRUCTION(0,  2, 4294967295, 4294967295, 16777215, 0, 0, 0, 0),
+    INDICATOR_INSTRUCTION(1,  2, 0, 130, 0, 0,          255,  15,  15), // KC_TAB, KC_Y
+    INDICATOR_INSTRUCTION(2,  2, 0, 260, 0, 0,          238, 127,  15), // QU
+    INDICATOR_INSTRUCTION(3,  2, 0, 520, 0, 0,          255, 255,  15), // WI
+    INDICATOR_INSTRUCTION(4,  2, 0, 1040, 0, 0,         127, 255,   0), // EO
+    INDICATOR_INSTRUCTION(5,  2, 0, 17039360, 0, 0,       0, 255,   0), // KC_CAPS, KC_H
+    INDICATOR_INSTRUCTION(6,  2, 0, 34078720, 0, 0,       0, 255, 120), // AJ
+    INDICATOR_INSTRUCTION(7,  2, 0, 68157440, 0, 0,       0,   0, 255), // SK
+    INDICATOR_INSTRUCTION(8,  2, 0, 136314880, 0, 0,     75,   0, 255), // DL
+#define PATTERN_INDICATOR_OFFSET 9
+    INDICATOR_INSTRUCTION(9,  2, 8323072, 0, 0, 0,      255, 255,   0), // KC_GRV, 123456,
+#define ACTIVE_PATTERN_INDICATOR_OFFSET 10
+    INDICATOR_INSTRUCTION(10, 2, 262144, 0, 0, 0,       255,   0,   0), // active pattern
+
+#define COLOR_PATTERN_INSTRUCTION_OFFSET 11
+    INDICATOR_INSTRUCTION(11, 2, 0, 0, 1, 0,            255, 255,   0), // Z
+    INDICATOR_INSTRUCTION(12, 2, 0, 0, 2, 0,            255, 255,   0), // X
+    INDICATOR_INSTRUCTION(13, 2, 0, 0, 4, 0,            255, 255,   0), // C
+    INDICATOR_INSTRUCTION(14, 2, 0, 0, 8, 0,            255, 255,   0), // V
+    INDICATOR_INSTRUCTION(15, 2, 0, 0, 16, 0,           255, 255,   0), // B
+    INDICATOR_INSTRUCTION(16, 2, 0, 0, 32, 0,           255, 255,   0), // N
+    INDICATOR_INSTRUCTION(17, 2, 0, 0, 64, 0,           255, 255,   0), // M
+    INDICATOR_INSTRUCTION(18, 2, 0, 0, 128, 0,          255, 255,   0), // KC_COMMA
+    INDICATOR_INSTRUCTION(19, 2, 0, 0, 256, 0,          255, 255,   0), // KC_DOT
+#define COLOR_PATTERN_INSTRUCTION_END 19
+
+
+    INDICATOR_INSTRUCTION(20, 1, 0, 3672092, 0, 0,      255,   0,   0), // QWE ASD P
+    
+    INDICATOR_INSTRUCTION(21, 1, 0, 3672092, 0, 0,      255, 255,   0), // QWE ASD P
+
 };
 
 
@@ -172,7 +219,6 @@ const uint16_t PROGMEM fn_actions[] = {};
 
 _ub KEYCODE_TO_LED_ID[256];
 _ub DISTANCE_MAP[LED_NUMBERS][LED_NUMBERS];
-
 
 _ub ktli(uint16_t keycode){
 
@@ -209,7 +255,17 @@ void set_led_instructions_id(uint16_t instruction_index, uint32_t id){
     led_instructions[i].id3 = 0;
     add_led_instructions_id(i, id);
 }
-
+void refresh_color_pattern_indicator(void){
+    _ub count = COLOR_PATTERN_INSTRUCTION_END - COLOR_PATTERN_INSTRUCTION_OFFSET + 1;
+    _ub (*pattern_in_use)[3] = &COLOR_PATTERNS[USER_CONFIG.COLOR_PATTERN_INDEX][0];
+    _ub step = COLOR_PATTERN_RGB_COUNT / count;
+    uint16_t begin = LED_NUMBERS + COLOR_PATTERN_INSTRUCTION_OFFSET;
+    for(_ub i = 0; i < count; ++i){
+        led_instructions[begin + i].r = pattern_in_use[i * step][0];
+        led_instructions[begin + i].g = pattern_in_use[i * step][1];
+        led_instructions[begin + i].b = pattern_in_use[i * step][2];
+    }
+}
 
 
 
@@ -242,15 +298,7 @@ void matrix_init_user(void) {
 
 
 
-
-
-
     led_animation_speed += ANIMATION_SPEED_STEP * 15;
-    if(USER_CONFIG.RAINBOW_TYPE % 2){
-        COLOR_PATTERN = &RAINBOW_LIGHT[0];
-    } else{
-        COLOR_PATTERN = &RAINBOW_BRIGHT[0];
-    }
 
     const float unit_distance = 0.75; // unit distance
     float norm_dis = 0.0; // normalized distance
@@ -265,16 +313,12 @@ void matrix_init_user(void) {
                     (led_map[i].x - led_map[j].x) +
                     (led_map[i].y - led_map[j].y) *
                     (led_map[i].y - led_map[j].y)
-            ) / unit_distance;
+            ) / unit_distance + 0.5;
                     
             DISTANCE_MAP[i+1][j+1] = (_ub)norm_dis;
             DISTANCE_MAP[j+1][i+1] = (_ub)norm_dis;
         }
     }
-
-
-
-
 
 
 
@@ -299,65 +343,8 @@ void matrix_init_user(void) {
         set_led_instructions_id(i, i);
     }
 
-
-
-
-
-#define INDICATORS_NUMBER 30
-    struct indicator_t {
-        int instruction_index_offset;
-        int layer;
-        uint16_t key;
-        _ub *rgb;
-    } INDICATORS[INDICATORS_NUMBER] = {
-        { 0,  2, KC_Q,    COLOR_PATTERN[0]  },
-        { 0,  2, KC_U,    COLOR_PATTERN[0]  },
-        { 1,  2, KC_W,    COLOR_PATTERN[2]  },
-        { 1,  2, KC_I,    COLOR_PATTERN[2]  },
-        { 2,  2, KC_E,    COLOR_PATTERN[4]  },
-        { 2,  2, KC_O,    COLOR_PATTERN[4]  },
-        { 3,  2, KC_A,    COLOR_PATTERN[6]  },
-        { 3,  2, KC_J,    COLOR_PATTERN[6]  },
-        { 4,  2, KC_S,    COLOR_PATTERN[8]  },
-        { 4,  2, KC_K,    COLOR_PATTERN[8]  },
-        { 5,  2, KC_D,    COLOR_PATTERN[10] },
-        { 5,  2, KC_L,    COLOR_PATTERN[10] },
-        { 6,  2, KC_TAB,  COLOR_PATTERN[12] },
-        { 6,  2, KC_Y,    COLOR_PATTERN[12] },
-        { 7,  2, KC_CAPS, COLOR_PATTERN[14] },
-        { 7,  2, KC_H,    COLOR_PATTERN[14] },
-#define PATTERN_INDICATOR_OFFSET 8
-        { 8,  2, KC_GRV,  COLOR_PATTERN[17] }, // no pattern
-        { 8,  2, KC_1,    COLOR_PATTERN[17] }, // pattern 1
-        { 8,  2, KC_2,    COLOR_PATTERN[17] },
-        { 8,  2, KC_3,    COLOR_PATTERN[17] },
-        { 8,  2, KC_4,    COLOR_PATTERN[17] },
-        { 8,  2, KC_5,    COLOR_PATTERN[17] },
-#define ACTIVE_PATTERN_INDICATOR_OFFSET 9
-        { 9,  2, KC_2,   COLOR_PATTERN[0]  }, // active pattern
-        { 10, 1, KC_Q,    COLOR_PATTERN[0]  },
-        { 10, 1, KC_W,    COLOR_PATTERN[0]  },
-        { 10, 1, KC_E,    COLOR_PATTERN[0]  },
-        { 10, 1, KC_P,    COLOR_PATTERN[0]  },
-        { 10, 1, KC_S,    COLOR_PATTERN[0]  },
-        { 10, 1, KC_A,    COLOR_PATTERN[0]  },
-        { 10, 1, KC_D,    COLOR_PATTERN[0]  },
-    };
-    // make sure max offset is less than INDICATORS_LED
-
-    flag = LED_FLAG_MATCH_ID | LED_FLAG_MATCH_LAYER | LED_FLAG_USE_RGB;
-    for(int i = 0; i < INDICATORS_NUMBER; ++i){
-        struct indicator_t __config = INDICATORS[i];
-        
-        int j = LED_NUMBERS + __config.instruction_index_offset;
-        led_instructions[j].layer = __config.layer;
-        led_instructions[j].flags = flag;
-        led_instructions[j].r = __config.rgb[0];
-        led_instructions[j].g = __config.rgb[1];
-        led_instructions[j].b = __config.rgb[2];
-        add_led_instructions_id(j, ktli(__config.key));
-    }
-    led_instructions[LED_NUMBERS + INDICATORS_LED - 1].end = 1;
+    led_instructions[LED_NUMBERS + INDICATORS_GROUP_NUMBER].end = 1;
+    refresh_color_pattern_indicator();
 }; // end of matrix_init_user(), initialization function
 
 
@@ -414,11 +401,12 @@ void matrix_scan_user(void) {
                 // In virtue, dp should be larger than or equal to 0
                 // but dp is unsigned so never mind......
                 if(( dp < USER_CONFIG.WAVE_FRONT_WIDTH ) && (
-                        DISTANCE_MAP[l][j] < USER_CONFIG.TRAVEL_DISTANCE)){
+                        DISTANCE_MAP[l][j] <= USER_CONFIG.TRAVEL_DISTANCE)){
                     switch(USER_CONFIG.DRIPPLE_PATTERN){
                     case 3:
                     case 4:
                     case 5:
+                    case 6:
                         wave_front[j] += dp;
                         break;
                     default:
@@ -434,14 +422,13 @@ void matrix_scan_user(void) {
         }
     }
 
-    // print("onlist: ");
-    uint16_t flag_rgb = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
-    uint16_t flag_pattern = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
 
     // enum failed
     #define USE_PATTERN 0
     #define BLACK_RGB 1
     #define COLOR_RGB 2
+    uint16_t flag_rgb = LED_FLAG_MATCH_ID | LED_FLAG_USE_RGB;
+    uint16_t flag_pattern = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
     for(int i = 1; i < LED_NUMBERS; ++i){
         _ub handle_type = USE_PATTERN, c = 0;
         // uprintf("%d ", wave_front[i]);
@@ -474,6 +461,7 @@ void matrix_scan_user(void) {
             }
             break;
         case 5:
+        case 6:
             if(wave_front[i]){
                 handle_type = COLOR_RGB;
             } else{
@@ -493,11 +481,12 @@ void matrix_scan_user(void) {
             led_instructions[i].flags = flag_rgb;
             break;
         case COLOR_RGB:
-            c = (wave_front[i] * COLOR_PATTERN_COUNT /
-                    USER_CONFIG.WAVE_FRONT_WIDTH) % COLOR_PATTERN_COUNT;
-            led_instructions[i].r = COLOR_PATTERN[c][0];
-            led_instructions[i].g = COLOR_PATTERN[c][1];
-            led_instructions[i].b = COLOR_PATTERN[c][2];
+            c = (wave_front[i] * COLOR_PATTERN_RGB_COUNT /
+                    USER_CONFIG.WAVE_FRONT_WIDTH) % COLOR_PATTERN_RGB_COUNT;
+            _ub *arr = &COLOR_PATTERNS[USER_CONFIG.COLOR_PATTERN_INDEX][c][0];
+            led_instructions[i].r = arr[0];
+            led_instructions[i].g = arr[1];
+            led_instructions[i].b = arr[2];
             led_instructions[i].flags = flag_rgb;
             break;
         }
@@ -673,13 +662,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 
 
+#define PATTERN_COUNT 7
                 _ub incre = keycode == L_SP_PR ? PATTERN_COUNT-1 : 1;
                 USER_CONFIG.DRIPPLE_PATTERN += incre;
                 USER_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
 
                 if(USER_CONFIG.DRIPPLE_PATTERN <= 4){
                     USER_CONFIG.TRAVEL_DISTANCE = 20;
-                    COLOR_PATTERN = &RAINBOW_BRIGHT[0];
+                    USER_CONFIG.COLOR_PATTERN_INDEX = 0;
                     USER_CONFIG.WAVE_PERIOD = 50;
                 }
 
@@ -689,33 +679,43 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     indicator_key = KC_GRV;
                     break;
                 case 1: // background off, wave on
-                    USER_CONFIG.WAVE_FRONT_WIDTH = 2;
                     indicator_key = KC_1;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 2;
                     break;
                 case 2: // background on, wave off
-                    USER_CONFIG.WAVE_FRONT_WIDTH = 5;
                     indicator_key = KC_2;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 5;
                     break;
                 case 3: // background off, rainbow wave
-                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     indicator_key = KC_3;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     break;
                 case 4: // background on, rainbow wave
-                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     indicator_key = KC_4;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
                     break;
                 case 5:
-                    COLOR_PATTERN = &WHITE_FADE[0];
-                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
-                    USER_CONFIG.TRAVEL_DISTANCE = 1;
-                    USER_CONFIG.WAVE_PERIOD = 100;
                     indicator_key = KC_5;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
+
+                    USER_CONFIG.COLOR_PATTERN_INDEX = 2;
+                    USER_CONFIG.TRAVEL_DISTANCE = 0;
+                    USER_CONFIG.WAVE_PERIOD = 100;
+                    break;
+                case 6:
+                    indicator_key = KC_6;
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 25;
+
+                    USER_CONFIG.COLOR_PATTERN_INDEX = 3;
+                    USER_CONFIG.TRAVEL_DISTANCE = 2;
+                    USER_CONFIG.WAVE_PERIOD = 10;
                     break;
                 }
 
                 set_led_instructions_id(
                         LED_NUMBERS + ACTIVE_PATTERN_INDICATOR_OFFSET,
                         ktli(indicator_key));
+                refresh_color_pattern_indicator();
                 
 
                 // remove effect after changing pattern
@@ -747,18 +747,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
         // these are the keys not in range 0x04 - 0x52
-        case L_SP_TR:
+        case L_CP_PR:
+        case L_CP_NX:
             if(record->event.pressed){
-                USER_CONFIG.RAINBOW_TYPE += 1;
-                if(USER_CONFIG.RAINBOW_TYPE % 2){
-                    COLOR_PATTERN = &RAINBOW_LIGHT[0];
-                } else{
-                    COLOR_PATTERN = &RAINBOW_BRIGHT[0];
-                }
+                _ub incre = keycode == L_CP_PR ? COLOR_PATTERNS_COUNT - 1 : 1;
+                USER_CONFIG.COLOR_PATTERN_INDEX += incre;
+                USER_CONFIG.COLOR_PATTERN_INDEX %= COLOR_PATTERNS_COUNT;
+                refresh_color_pattern_indicator();
             }
-            return false;
-        case L_SP_PD:
-        
             return false;
         default:
             /*

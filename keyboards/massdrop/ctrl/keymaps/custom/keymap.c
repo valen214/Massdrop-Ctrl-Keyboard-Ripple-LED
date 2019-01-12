@@ -1,6 +1,5 @@
 #include QMK_KEYBOARD_H
 
-#include <config_led.h>
 #include <math.h>
 #include <print.h>
 
@@ -269,11 +268,7 @@ void refresh_color_pattern_indicator(void){
 
 
 
-
-
-void matrix_init_user(void) {
-
-
+void init_keycode_to_led_map(void){
     uint16_t LED_MAP[MATRIX_ROWS][MATRIX_COLS] = LAYOUT(
             1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
             20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,
@@ -293,35 +288,56 @@ void matrix_init_user(void) {
             }
         }
     }
+}
+#define KPM_HEIGHT 6
+#define KPM_WIDTH 20
+void init_distance_map(void){
+    // proportional to the real keyboard
+    unsigned short KEY_POSITION_MAP[KPM_HEIGHT][KPM_WIDTH] = {
+        { KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,    KC_F10,  KC_F11,  KC_F12,  KC_NO,   KC_PSCR, KC_SLCK, KC_PAUS,  },
+        // { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        { KC_NO,   KC_GRV,  KC_1,    KC_2,   KC_3,   KC_4,   KC_5,   KC_6,   KC_7,   KC_8,    KC_9,   KC_0,    KC_MINS,  KC_EQL,  KC_BSPC, KC_BSPC, KC_NO,   KC_INS,  KC_HOME, KC_PGUP,  },
+        { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
+        { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
+        { KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT,  KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,   KC_NO,   KC_UP,   KC_NO,    },
+        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  20737,   KC_APP,   KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
+    };
 
+    /*
+    complexity of the below implementation ~O(n^2), n = number of keys
+    */
+    _ub x = 0, y = 0;
+    // _ub raw_distance_map[LED_NUMBERS][LED_NUMBERS];
+    while(x < KPM_WIDTH && y < KPM_HEIGHT){
+        _ub sl = ktli(KEY_POSITION_MAP[y][x]); // source led
+        for(_ub i = 0; i < KPM_WIDTH; ++i){
+            for(_ub j = 0; j < KPM_HEIGHT; ++j){
+                _ub tl = ktli(KEY_POSITION_MAP[j][i]); // target led
+                if(sl == tl) continue;
+                
+                _ub dx = abs(i - x), dy = abs(j - y);
 
+                _ub dis = dx + dy;
+                if(i < x && j > y){ // core algorithm
+                    dis -= dx < dy ? dx : dy; // min(dx, dy)
+                }
+                _ub _dis = DISTANCE_MAP[sl][tl];
+                
+                if(_dis && _dis <= dis) continue;
 
-
-
-    led_animation_speed += ANIMATION_SPEED_STEP * 15;
-
-    const float unit_distance = 0.75; // unit distance
-    float norm_dis = 0.0; // normalized distance
-
-    // ./tmk_core/protocol/arm_atsam/led_matrix.c: line 53
-    issi3733_led_t led_map[ISSI3733_LED_COUNT+1] = ISSI3733_LED_MAP;
-
-    for(_ub i = 0; i < NUMBER_OF_KEYS; ++i){
-        for(_ub j = i+1; j < NUMBER_OF_KEYS; ++j){
-            norm_dis = sqrt(
-                    (led_map[i].x - led_map[j].x) *
-                    (led_map[i].x - led_map[j].x) +
-                    (led_map[i].y - led_map[j].y) *
-                    (led_map[i].y - led_map[j].y)
-            ) / unit_distance + 0.5;
-                    
-            DISTANCE_MAP[i+1][j+1] = (_ub)norm_dis;
-            DISTANCE_MAP[j+1][i+1] = (_ub)norm_dis;
+                DISTANCE_MAP[sl][tl] = dis;
+                DISTANCE_MAP[tl][sl] = dis;
+            }
+        }
+        if(x < KPM_WIDTH-1){
+            ++x;
+        } else{ // start next row iteration
+            x = 0;
+            ++y;
         }
     }
-
-
-
+}
+void init_led_instructions(void){
     /*
     suppose to iterate 87 times for a 87 keys keyboard
     as there are 87 led_structions with LED_FLAG_MATCH_ID
@@ -345,6 +361,14 @@ void matrix_init_user(void) {
 
     led_instructions[LED_NUMBERS + INDICATORS_GROUP_NUMBER].end = 1;
     refresh_color_pattern_indicator();
+}
+
+
+void matrix_init_user(void) {
+    init_keycode_to_led_map();
+    init_distance_map(); // must be placed after keycode_to_led
+    init_led_instructions();
+    led_animation_speed += ANIMATION_SPEED_STEP * 15;
 }; // end of matrix_init_user(), initialization function
 
 

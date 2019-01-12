@@ -1,7 +1,6 @@
 #include QMK_KEYBOARD_H
 
 #include <math.h>
-#include <print.h>
 
 enum ctrl_keycodes {
     L_BRI = SAFE_RANGE, //LED Brightness Increase
@@ -396,29 +395,6 @@ void matrix_scan_user(void) {
             _ub l = KEY_STROKES[i].led_id;
             int period_passed = e / USER_CONFIG.WAVE_PERIOD;
 
-            // for(int start = period_passed - USER_CONFIG.WAVE_FRONT_WIDTH + 1,
-            //         j = 0; j < USER_CONFIG.WAVE_FRONT_WIDTH; ++start, ++j){
-            //     uprintf("start: %d\n", start);
-            //     if(start < 0) continue;
-            //     uprintf("DISTANCE_MAP[%d][0][0]: %d\n", l, DISTANCE_MAP[l][0][0]);
-            //     if(start >= DISTANCE_MAP[l][0][0]) break;
-            //     if(start == 0){
-            //         if(( USER_CONFIG.DRIPPLE_PATTERN == 3 ) || (
-            //                 USER_CONFIG.DRIPPLE_PATTERN == 4 )){
-            //             wave_front[l] += 1;
-            //         } else{
-            //             wave_front[l] = 1;
-            //         }
-            //         alive = 1;
-            //         continue;
-            //     }
-            //     for(_ub k = 1; k < DISTANCE_MAP[l][start][0]; ++k){
-            //         uprintf("wave_front[DISTANCE_MAP[%d][%d][%d]] += 1\n", l, start, k);
-            //         wave_front[DISTANCE_MAP[l][start][k]] += 1;
-            //         alive = 1;
-            //     }
-            // }
-
             unsigned short dp;
             for(int j = 1 ; j < LED_NUMBERS; ++j){
                 dp = period_passed - DISTANCE_MAP[l][j];
@@ -455,7 +431,6 @@ void matrix_scan_user(void) {
     uint16_t flag_pattern = LED_FLAG_MATCH_ID | LED_FLAG_USE_ROTATE_PATTERN;
     for(int i = 1; i < LED_NUMBERS; ++i){
         _ub handle_type = USE_PATTERN, c = 0;
-        // uprintf("%d ", wave_front[i]);
         switch(USER_CONFIG.DRIPPLE_PATTERN){
         case 0:
             handle_type = USE_PATTERN;
@@ -516,34 +491,8 @@ void matrix_scan_user(void) {
         }
     }
 
-/*
-    if(perf_timer[0] == 99){
-        perf_timer[99] = timer_elapsed32(perf_timer[99]);
-        uint32_t sum = 0;
-        for(int i = 1; i < 100; ++i){
-            sum += perf_timer[i];
-        }
-        uprintf("matrix_scan_user() time used (sum of 99 invocation): %d\n", sum);
-        perf_timer[0] = 1;
-    } else{
-        perf_timer[perf_timer[0]] = timer_elapsed32(perf_timer[perf_timer[0]]);
-        perf_timer[0] += 1;
-    }
-*/
-    // print("\n");
 }; // end of matrix_scan_user (looping function)
 
-
-/* command
-
-
-make massdrop/ctrl:custom
-
-
-./.build/mdloader_windows.exe --first --download massdrop_ctrl_custom.bin --restart
-
-
-*/
 
 #define MODS_SHIFT  (keyboard_report->mods & MOD_BIT(KC_LSHIFT) || keyboard_report->mods & MOD_BIT(KC_RSHIFT))
 #define MODS_CTRL  (keyboard_report->mods & MOD_BIT(KC_LCTL) || keyboard_report->mods & MOD_BIT(KC_RCTRL))
@@ -551,11 +500,6 @@ make massdrop/ctrl:custom
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t key_timer;
-
-
-    if(record->event.pressed){
-        uprintf("%d pressed\n", keycode);
-    }
 
     switch (keycode) {
         case L_BRI:

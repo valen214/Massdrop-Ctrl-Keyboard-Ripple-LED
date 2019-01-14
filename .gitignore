@@ -13,6 +13,7 @@
 *.swp
 tags
 *~
+doc/
 build/
 *.bak
 .vagrant/

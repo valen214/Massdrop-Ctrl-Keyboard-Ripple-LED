@@ -122,7 +122,8 @@
  tmk_core/protocol/arm_atsam/led_matrix.h \
  keyboards/massdrop/ctrl/config_led.h \
  tmk_core/protocol/arm_atsam/usb/udi_cdc.h \
- tmk_core/protocol/arm_atsam/usb/usb2422.h
+ tmk_core/protocol/arm_atsam/usb/usb2422.h \
+ tmk_core/protocol/arm_atsam/main_arm_atsam.h
 
 keyboards/massdrop/ctrl/config.h:
 
@@ -415,3 +416,5 @@ keyboards/massdrop/ctrl/config_led.h:
 tmk_core/protocol/arm_atsam/usb/udi_cdc.h:
 
 tmk_core/protocol/arm_atsam/usb/usb2422.h:
+
+tmk_core/protocol/arm_atsam/main_arm_atsam.h:

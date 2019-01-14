@@ -1,7 +1,7 @@
 #include QMK_KEYBOARD_H
 
 // uint8_t keyboard_leds(void)
-// #include <tmk_core/protocol/arm_atsam/main_arm_atsam.h>
+#include <tmk_core/protocol/arm_atsam/main_arm_atsam.h>
 
 
 #if ISSI3733_LED_COUNT == 119
@@ -95,7 +95,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 // see: /tmk_core/common/keycode.h
 uint8_t KEYCODE_TO_LED_ID[256];
-uint8_t DISTANCE_MAP[KEY_LED_COUNT][KEY_LED_COUNT];
+uint8_t DISTANCE_MAP[KEY_LED_COUNT+1][KEY_LED_COUNT+1];
+struct user_led_t {
+    uint8_t using;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} USER_LED[KEY_LED_COUNT] = {
+
+};
 
 struct {
     uint8_t PATTERN_INDEX;
@@ -115,8 +123,10 @@ uint8_t ktli(uint16_t keycode){
     if(keycode < 256){
         // the array is initialized in `matrix_init_user()`
         return KEYCODE_TO_LED_ID[keycode];
-    } else if(IS_FN(keycode)){
-        return 82;
+    }
+    switch(keycode){
+    // definition of MO(layer): quantum/quantum_keycodes.h: line 614
+    case MO(1): return 82;
     }
     return 0;
 };
@@ -124,12 +134,12 @@ uint8_t ktli(uint16_t keycode){
 // Runs just one time when the keyboard initializes.
 static void init_keycode_to_led_map(void){
     uint16_t LED_MAP[MATRIX_ROWS][MATRIX_COLS] = LAYOUT(
-            0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,
-            19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,
-            35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,
-            51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,
+            1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
+            20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,
+            36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,
+            52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,
 #if KEY_LED_COUNT >= 87
-            67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86
+            68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87
 #endif
     );
 
@@ -154,7 +164,7 @@ static void init_distance_map(void){
         { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
         { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
         { KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT,  KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,   KC_NO,   KC_UP,   KC_NO,    },
-        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  20737,   KC_APP,   KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
+        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  MO(1),   KC_APP,   KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
     };
     uint8_t columns = KEY_POSITION_MAP_COLUMNS;
     uint8_t rows = KEY_POSITION_MAP_ROWS;
@@ -191,15 +201,226 @@ void matrix_init_user(void) {
 };
 
 // /tmk_core/protocol/arm_atsam/led_matrix.c: line 244
-extern uint8_t led_per_run;
+uint8_t led_enabled;
+float led_animation_speed;
+uint8_t led_animation_direction;
+uint8_t led_animation_orientation;
+uint8_t led_animation_breathing;
+uint8_t led_animation_breathe_cur;
+uint8_t breathe_step;
+uint8_t breathe_dir;
+uint64_t led_next_run;
+
+uint8_t led_animation_id;
+uint8_t led_lighting_mode;
+
+issi3733_led_t *led_cur;
+uint8_t led_per_run;
+float breathe_mult;
 
 // overrided /tmk_core/protocol/arm_atsam/led_matrix.c: line 484
 void rgb_matrix_init_user(void){
     led_animation_speed = ANIMATION_SPEED_STEP * 15;
-    led_per_run = 1;
+    led_per_run = 15;
 }
 
 // overrided /tmk_core/protocol/arm_atsam/led_matrix.c: line 262
+void led_matrix_run(void)
+{
+    float ro;
+    float go;
+    float bo;
+    float po;
+    uint8_t led_this_run = 0;
+    led_setup_t *f = (led_setup_t*)led_setups[led_animation_id];
+
+    if (led_cur == 0) //Denotes start of new processing cycle in the case of chunked processing
+    {
+        led_cur = led_map;
+
+        disp.frame += 1;
+
+        breathe_mult = 1;
+
+        if (led_animation_breathing)
+        {
+            led_animation_breathe_cur += breathe_step * breathe_dir;
+
+            if (led_animation_breathe_cur >= BREATHE_MAX_STEP)
+                breathe_dir = -1;
+            else if (led_animation_breathe_cur <= BREATHE_MIN_STEP)
+                breathe_dir = 1;
+
+            //Brightness curve created for 256 steps, 0 - ~98%
+            breathe_mult = 0.000015 * led_animation_breathe_cur * led_animation_breathe_cur;
+            if (breathe_mult > 1) breathe_mult = 1;
+            else if (breathe_mult < 0) breathe_mult = 0;
+        }
+    }
+
+    uint8_t fcur = 0;
+    uint8_t fmax = 0;
+
+    //Frames setup
+    while (f[fcur].end != 1)
+    {
+        fcur++; //Count frames
+    }
+
+    fmax = fcur; //Store total frames count
+
+    struct user_led_t user_led_cur;
+    while (led_cur < lede && led_this_run < led_per_run)
+    {
+        ro = 0;
+        go = 0;
+        bo = 0;
+
+        uint8_t led_index = led_cur - led_map;
+        if(led_index < KEY_LED_COUNT){
+            user_led_cur = USER_LED[led_index];
+        }
+
+        if(led_index < KEY_LED_COUNT && user_led_cur.using){
+            ro = user_led_cur.r;
+            go = user_led_cur.g;
+            bo = user_led_cur.b;
+        }
+        else if (led_lighting_mode == LED_MODE_KEYS_ONLY && led_cur->scan == 255)
+        {
+            //Do not act on this LED
+        }
+        else if (led_lighting_mode == LED_MODE_NON_KEYS_ONLY && led_cur->scan != 255)
+        {
+            //Do not act on this LED
+        }
+        else if (led_lighting_mode == LED_MODE_INDICATORS_ONLY)
+        {
+            //Do not act on this LED (Only show indicators)
+        }
+        else
+        {
+            //Act on LED
+            for (fcur = 0; fcur < fmax; fcur++)
+            {
+
+                if (led_animation_orientation)
+                {
+                  po = led_cur->py;
+                }
+                else
+                {
+                  po = led_cur->px;
+                }
+
+                float pomod;
+                pomod = (float)(disp.frame % (uint32_t)(1000.0f / led_animation_speed)) / 10.0f * led_animation_speed;
+
+                //Add in any moving effects
+                if ((!led_animation_direction && f[fcur].ef & EF_SCR_R) || (led_animation_direction && (f[fcur].ef & EF_SCR_L)))
+                {
+                    pomod *= 100.0f;
+                    pomod = (uint32_t)pomod % 10000;
+                    pomod /= 100.0f;
+
+                    po -= pomod;
+
+                    if (po > 100) po -= 100;
+                    else if (po < 0) po += 100;
+                }
+                else if ((!led_animation_direction && f[fcur].ef & EF_SCR_L) || (led_animation_direction && (f[fcur].ef & EF_SCR_R)))
+                {
+                    pomod *= 100.0f;
+                    pomod = (uint32_t)pomod % 10000;
+                    pomod /= 100.0f;
+                    po += pomod;
+
+                    if (po > 100) po -= 100;
+                    else if (po < 0) po += 100;
+                }
+
+                //Check if LED's po is in current frame
+                if (po < f[fcur].hs) continue;
+                if (po > f[fcur].he) continue;
+                //note: < 0 or > 100 continue
+
+                //Calculate the po within the start-stop percentage for color blending
+                po = (po - f[fcur].hs) / (f[fcur].he - f[fcur].hs);
+
+                //Add in any color effects
+                if (f[fcur].ef & EF_OVER)
+                {
+                    ro = (po * (f[fcur].re - f[fcur].rs)) + f[fcur].rs;// + 0.5;
+                    go = (po * (f[fcur].ge - f[fcur].gs)) + f[fcur].gs;// + 0.5;
+                    bo = (po * (f[fcur].be - f[fcur].bs)) + f[fcur].bs;// + 0.5;
+                }
+                else if (f[fcur].ef & EF_SUBTRACT)
+                {
+                    ro -= (po * (f[fcur].re - f[fcur].rs)) + f[fcur].rs;// + 0.5;
+                    go -= (po * (f[fcur].ge - f[fcur].gs)) + f[fcur].gs;// + 0.5;
+                    bo -= (po * (f[fcur].be - f[fcur].bs)) + f[fcur].bs;// + 0.5;
+                }
+                else
+                {
+                    ro += (po * (f[fcur].re - f[fcur].rs)) + f[fcur].rs;// + 0.5;
+                    go += (po * (f[fcur].ge - f[fcur].gs)) + f[fcur].gs;// + 0.5;
+                    bo += (po * (f[fcur].be - f[fcur].bs)) + f[fcur].bs;// + 0.5;
+                }
+            }
+        }
+
+        //Clamp values 0-255
+        if (ro > 255) ro = 255; else if (ro < 0) ro = 0;
+        if (go > 255) go = 255; else if (go < 0) go = 0;
+        if (bo > 255) bo = 255; else if (bo < 0) bo = 0;
+
+        if (led_animation_breathing)
+        {
+            ro *= breathe_mult;
+            go *= breathe_mult;
+            bo *= breathe_mult;
+        }
+
+        *led_cur->rgb.r = (uint8_t)ro;
+        *led_cur->rgb.g = (uint8_t)go;
+        *led_cur->rgb.b = (uint8_t)bo;
+
+#ifdef USB_LED_INDICATOR_ENABLE
+        if (keyboard_leds())
+        {
+            uint8_t kbled = keyboard_leds();
+            if (
+                #if USB_LED_NUM_LOCK_SCANCODE != 255
+                (led_cur->scan == USB_LED_NUM_LOCK_SCANCODE && kbled & (1<<USB_LED_NUM_LOCK)) ||
+                #endif //NUM LOCK
+                #if USB_LED_CAPS_LOCK_SCANCODE != 255
+                (led_cur->scan == USB_LED_CAPS_LOCK_SCANCODE && kbled & (1<<USB_LED_CAPS_LOCK)) ||
+                #endif //CAPS LOCK
+                #if USB_LED_SCROLL_LOCK_SCANCODE != 255
+                (led_cur->scan == USB_LED_SCROLL_LOCK_SCANCODE && kbled & (1<<USB_LED_SCROLL_LOCK)) ||
+                #endif //SCROLL LOCK
+                #if USB_LED_COMPOSE_SCANCODE != 255
+                (led_cur->scan == USB_LED_COMPOSE_SCANCODE && kbled & (1<<USB_LED_COMPOSE)) ||
+                #endif //COMPOSE
+                #if USB_LED_KANA_SCANCODE != 255
+                (led_cur->scan == USB_LED_KANA_SCANCODE && kbled & (1<<USB_LED_KANA)) ||
+                #endif //KANA
+                (0))
+            {
+                if (*led_cur->rgb.r > 127) *led_cur->rgb.r = 0;
+                else *led_cur->rgb.r = 255;
+                if (*led_cur->rgb.g > 127) *led_cur->rgb.g = 0;
+                else *led_cur->rgb.g = 255;
+                if (*led_cur->rgb.b > 127) *led_cur->rgb.b = 0;
+                else *led_cur->rgb.b = 255;
+            }
+        }
+#endif //USB_LED_INDICATOR_ENABLE
+
+        led_cur++;
+        led_this_run++;
+    }
+}
 
 #define KEY_STROKES_LENGTH 20
 struct {
@@ -219,14 +440,14 @@ void set_led_rgb(uint8_t led_id, uint8_t r, uint8_t g, uint8_t b){
 }
 
 
-uint8_t DISTANCE_FROM_LAST_KEYSTROKE[KEY_LED_COUNT];
+uint8_t DISTANCE_FROM_LAST_KEYSTROKE[KEY_LED_COUNT+1];
 void calculate_keystroke_distance(void){
     bool alive;
     uint8_t led_id, period_passed;
     uint32_t t;
 
 
-    for(uint8_t i = 0; i < KEY_LED_COUNT; ++i){
+    for(uint8_t i = 0; i <= KEY_LED_COUNT; ++i){
         DISTANCE_FROM_LAST_KEYSTROKE[i] = 0;
     }
 
@@ -238,7 +459,7 @@ void calculate_keystroke_distance(void){
             period_passed = t / USER_CONFIG.WAVE_PERIOD;
 
             uint8_t delta_period;
-            for(uint8_t j = 0; j < KEY_LED_COUNT; ++j){
+            for(uint8_t j = 1; j <= KEY_LED_COUNT; ++j){
                 delta_period = period_passed - DISTANCE_MAP[led_id][j];
                 if(( delta_period < USER_CONFIG.WAVE_FRONT_WIDTH) && (
                     DISTANCE_MAP[led_id][j] <= USER_CONFIG.TRAVEL_DISTANCE
@@ -262,6 +483,51 @@ void calculate_keystroke_distance(void){
     }
 }
 
+#define COLOR_PATTERN_RGB_COUNT 18
+static uint8_t COLOR_PATTERNS[][COLOR_PATTERN_RGB_COUNT][3] = {
+    { // default rainbow color
+        {255,   0,   0}, {255,   0,   0}, {255, 127,   0},
+        {255, 127,   0}, {255, 255,   0}, {255, 255,   0},
+        {120, 255,   0}, {120, 255,   0}, {  0, 255,   0},
+        {  0, 255,   0}, {  0, 255, 120}, {  0, 255, 120},
+        {  0,   0, 255}, {  0,   0, 255}, { 75,   0, 130},
+        { 75,   0, 130}, { 43,   0, 130}, { 43,   0, 130},
+    }, { // light rainbow color
+        {248,  12,  18}, {238,  17,   0}, {255,  51,  17},
+        {255,  68,  32}, {255, 102,  68}, {255, 153,  51},
+        {254, 174,  45}, {204, 187,  51}, {208, 195,  16},
+        {170, 204,  34}, {105, 208,  37}, { 34, 204, 170},
+        { 18, 189, 185}, { 17, 170, 187}, { 68,  68, 221},
+        { 51,  17, 187}, { 59,  12, 189}, { 68,  34, 153},
+    }, { // white flat
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+        {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
+    }, { // white fade, cos curve
+        {255, 255, 255}, {255, 255, 255}, {252, 252, 252},
+        {247, 247, 247}, {240, 240, 240}, {232, 232, 232},
+        {221, 221, 221}, {209, 209, 209}, {196, 196, 196},
+        {181, 181, 181}, {164, 164, 164}, {147, 147, 147},
+        {128, 128, 128}, {108, 108, 108}, { 88,  88,  88},
+        { 66,  66,  66}, { 45,  45,  45}, { 23,  23,  23},
+    }, 
+};
+static const uint8_t COLOR_PATTERNS_COUNT = (
+        sizeof(COLOR_PATTERNS) / sizeof(COLOR_PATTERNS[0]));
+
+void set_user_led_rgb(uint8_t i, uint8_t r, uint8_t g, uint8_t b){
+    USER_LED[i-1].using = 1;
+    USER_LED[i-1].r = r;
+    USER_LED[i-1].g = g;
+    USER_LED[i-1].b = b;
+}
+void unset_user_led_rgb(uint8_t i){
+    USER_LED[i-1].using = 0;
+}
+
 // Runs constantly in the background, in a loop.
 void matrix_scan_user(void) {
     static uint32_t scan_timer = 0;
@@ -274,9 +540,18 @@ void matrix_scan_user(void) {
     }
 
     calculate_keystroke_distance();
-    for(uint8_t i = 0; i < KEY_LED_COUNT; ++i){
+
+    uint8_t ci; // color index
+    uint8_t *rgb;
+    for(uint8_t i = 1; i <= KEY_LED_COUNT; ++i){
         if(DISTANCE_FROM_LAST_KEYSTROKE[i]){
-            set_led_rgb(i, 255, 255, 255);
+            ci = (DISTANCE_FROM_LAST_KEYSTROKE[i] * COLOR_PATTERN_RGB_COUNT /
+                    USER_CONFIG.WAVE_FRONT_WIDTH) % COLOR_PATTERN_RGB_COUNT;
+            rgb = &COLOR_PATTERNS[USER_CONFIG.COLOR_PATTERN_INDEX][ci][0];
+
+            set_user_led_rgb(i, rgb[0], rgb[1], rgb[2]);
+        } else{
+            unset_user_led_rgb(i);
         }
     }
 
@@ -285,17 +560,17 @@ void matrix_scan_user(void) {
         if(timer_elapsed32(scan_timer) > 2000){
             scan_timer = timer_read32();
         } else if(timer_elapsed32(scan_timer) > 1000){
-            set_led_rgb(ktli(KC_F5), 255, 255, 255);
+            set_user_led_rgb(ktli(KC_F5), 255, 255, 255);
         }
-        set_led_rgb(ktli(KC_A), 255, 0, 0);
         break;
     case 1:
-        set_led_rgb(ktli(KC_Q), 255, 0, 0);
-        set_led_rgb(ktli(KC_W), 255, 0, 0);
-        set_led_rgb(ktli(KC_E), 255, 0, 0);
-        set_led_rgb(ktli(KC_A), 255, 0, 0);
-        set_led_rgb(ktli(KC_S), 255, 0, 0);
-        set_led_rgb(ktli(KC_D), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_Q), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_W), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_E), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_A), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_S), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_D), 255, 0, 0);
+        set_user_led_rgb(ktli(KC_P), 255, 0, 0);
         break;
     case 2:
         break;
@@ -424,6 +699,105 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 if (timer_elapsed32(key_timer) >= 500) {
                     reset_keyboard();
                 }
+            }
+            return false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+        case L_SP_PR: // previous dripple pattern
+        case L_SP_NE: // next dripple pattern
+            if (record->event.pressed) {
+#define PATTERN_COUNT 7
+                uint8_t incre = keycode == L_SP_PR ? PATTERN_COUNT-1 : 1;
+                USER_CONFIG.PATTERN_INDEX += incre;
+                USER_CONFIG.PATTERN_INDEX %= PATTERN_COUNT;
+
+                if(USER_CONFIG.PATTERN_INDEX <= 4){
+                    USER_CONFIG.TRAVEL_DISTANCE = 20;
+                    USER_CONFIG.COLOR_PATTERN_INDEX = 0;
+                    USER_CONFIG.WAVE_PERIOD = 50;
+                }
+
+                switch(USER_CONFIG.PATTERN_INDEX){
+                case 0: // None
+                    break;
+                case 1: // background off, wave on
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 2;
+                    break;
+                case 2: // background on, wave off
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 5;
+                    break;
+                case 3: // background off, rainbow wave
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
+                    break;
+                case 4: // background on, rainbow wave
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
+                    break;
+                case 5:
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 10;
+
+                    USER_CONFIG.COLOR_PATTERN_INDEX = 2;
+                    USER_CONFIG.TRAVEL_DISTANCE = 0;
+                    USER_CONFIG.WAVE_PERIOD = 100;
+                    break;
+                case 6:
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 25;
+
+                    USER_CONFIG.COLOR_PATTERN_INDEX = 3;
+                    USER_CONFIG.TRAVEL_DISTANCE = 2;
+                    USER_CONFIG.WAVE_PERIOD = 10;
+                    break;
+                }
+                
+                // remove effect after changing pattern
+                for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                    KEY_STROKES[i].alive = 0;
+                }
+
+            }
+            return false;
+        case L_SP_WD:
+        case L_SP_NW:
+            if(record->event.pressed){
+                short incre = keycode == L_SP_WD ? 1 : -1;
+                USER_CONFIG.WAVE_FRONT_WIDTH += incre;
+                if(USER_CONFIG.WAVE_FRONT_WIDTH < 1){
+                    USER_CONFIG.WAVE_FRONT_WIDTH = 1;
+                }
+            }
+            return false;
+        case L_SP_FA:
+        case L_SP_SL:
+            if(record->event.pressed){
+                short incre = keycode == L_SP_FA ? -1 : 1;
+                
+                USER_CONFIG.WAVE_PERIOD += 10 * incre;
+                if(USER_CONFIG.WAVE_PERIOD < 10){
+                    USER_CONFIG.WAVE_PERIOD = 10;
+                }
+            }
+            return false;
+        // these are the keys not in range 0x04 - 0x52
+        case L_CP_PR:
+        case L_CP_NX:
+            if(record->event.pressed){
+                uint8_t incre = keycode == L_CP_PR ? COLOR_PATTERNS_COUNT - 1 : 1;
+                USER_CONFIG.COLOR_PATTERN_INDEX += incre;
+                USER_CONFIG.COLOR_PATTERN_INDEX %= COLOR_PATTERNS_COUNT;
             }
             return false;
         default:

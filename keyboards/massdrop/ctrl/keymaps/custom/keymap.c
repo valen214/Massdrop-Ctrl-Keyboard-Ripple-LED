@@ -1,6 +1,7 @@
 #include QMK_KEYBOARD_H
 
 #include <math.h>
+#include <print.h>
 
 enum ctrl_keycodes {
     L_BRI = SAFE_RANGE, //LED Brightness Increase
@@ -153,7 +154,7 @@ struct{
     .TRAVEL_DISTANCE = 20,
 };
 
-#define KEY_STROKES_LENGTH 10
+#define KEY_STROKES_LENGTH 20
 struct {
     _ub alive;
     _ub led_id;
@@ -500,6 +501,9 @@ void matrix_scan_user(void) {
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t key_timer;
+
+    uprintf("keypress: %d\n", keycode);
+    uprintf("layer_state: %lu\n", layer_state);
 
     switch (keycode) {
         case L_BRI:

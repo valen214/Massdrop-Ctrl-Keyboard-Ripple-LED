@@ -276,16 +276,16 @@ void led_matrix_run(void)
         go = 0;
         bo = 0;
 
-        uint8_t led_index = led_cur - led_map;
-        if(led_index < KEY_LED_COUNT){
-            user_led_cur = USER_LED[led_index];
-        }
-
-        if(led_index < KEY_LED_COUNT && user_led_cur.state){
-            ro = user_led_cur.r;
-            go = user_led_cur.g;
-            bo = user_led_cur.b;
-        }
+        uint8_t led_index = led_cur - led_map;                  // only this part differs from the original function.
+        if(led_index < KEY_LED_COUNT){                          // 
+            user_led_cur = USER_LED[led_index];                 // `struct user_led_t USER_LED[]` is stored globally.
+        }                                                       // 
+                                                                // 
+        if(led_index < KEY_LED_COUNT && user_led_cur.state){    // `user_led_cur` is just for convenience
+            ro = user_led_cur.r;                                // 
+            go = user_led_cur.g;                                // 
+            bo = user_led_cur.b;                                // 
+        }                                                       // 
         else if (led_lighting_mode == LED_MODE_KEYS_ONLY && led_cur->scan == 255)
         {
             //Do not act on this LED
@@ -538,9 +538,47 @@ void unset_indicator_led_rgb(uint8_t i, uint8_t layer){
     USER_LED[i-1].state &= ~(1 << layer);
 }
 
+void refresh_pattern_indicators(void){
+    static uint8_t GRV_123456[] = {
+        KC_GRV, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6,
+    };
+
+    if(layer_state >= 0x04){
+        for(uint8_t i = 0; i < 7; ++i){
+            if(i == USER_CONFIG.PATTERN_INDEX){
+                set_indicator_led_rgb(ktli(GRV_123456[i]), 2, 0, 0, 255);
+            } else{
+                set_indicator_led_rgb(ktli(GRV_123456[i]), 2, 0, 255, 0);
+            }
+        }
+    } else{
+        for(uint8_t i = 0; i < 7; ++i){
+            unset_indicator_led_rgb(ktli(GRV_123456[i]), 2);
+        }
+    }
+}
+void refresh_color_pattern_indicators(void){
+    static uint8_t ZXCVBNM_COMM_DOT[] = {
+        KC_Z, KC_X, KC_C, KC_V, KC_B, KC_N, KC_M, KC_COMM, KC_DOT,
+    };
+    
+    if(layer_state >= 0x04){
+        uint8_t (*c)[3] = &COLOR_PATTERNS[USER_CONFIG.COLOR_PATTERN_INDEX][0];
+        for(uint8_t i = 0; i < 9; ++i){
+            set_indicator_led_rgb(ktli(ZXCVBNM_COMM_DOT[i]),
+                    2, c[i][0], c[i][1], c[i][2]);
+        }
+    } else{
+        for(uint8_t i = 0; i < 9; ++i){
+            unset_indicator_led_rgb(ktli(ZXCVBNM_COMM_DOT[i]), 2);
+        }
+    }
+}
+
 // Runs constantly in the background, in a loop.
 void matrix_scan_user(void) {
     static uint32_t scan_timer = 0;
+    static uint8_t last_layer = 0;
 
     uint8_t layer = 0;
     if(layer_state >= 0x04){
@@ -551,27 +589,102 @@ void matrix_scan_user(void) {
 
     calculate_keystroke_distance();
 
+    
+    #define USE_PATTERN 0
+    #define BLACK_RGB 1
+    #define COLOR_RGB 2
     uint8_t ci; // color index
     uint8_t *rgb;
+    uint8_t handle_type;
+    uint8_t distance;
     for(uint8_t i = 1; i <= KEY_LED_COUNT; ++i){
         if(USER_LED[i-1].state >= 2) continue;
-        if(DISTANCE_FROM_LAST_KEYSTROKE[i]){
+        
+        handle_type = USE_PATTERN;
+        distance = DISTANCE_FROM_LAST_KEYSTROKE[i];
+
+        switch(USER_CONFIG.PATTERN_INDEX){
+        case 0: handle_type = USE_PATTERN; break;
+        case 1: handle_type = distance ? USE_PATTERN : BLACK_RGB; break;
+        case 2: handle_type = distance ? BLACK_RGB : USE_PATTERN; break;
+        case 3: handle_type = distance ? COLOR_RGB : BLACK_RGB; break;
+        case 4: handle_type = distance ? COLOR_RGB : USE_PATTERN; break;
+        case 5:
+        case 6: handle_type = distance ? COLOR_RGB : USE_PATTERN; break;
+        }
+        switch(handle_type){
+        case USE_PATTERN: unset_user_led_rgb(i); break;
+        case BLACK_RGB: set_user_led_rgb(i, 0, 0, 0); break;
+        case COLOR_RGB:
             ci = (DISTANCE_FROM_LAST_KEYSTROKE[i] * COLOR_PATTERN_RGB_COUNT /
                     USER_CONFIG.WAVE_FRONT_WIDTH) % COLOR_PATTERN_RGB_COUNT;
             rgb = &COLOR_PATTERNS[USER_CONFIG.COLOR_PATTERN_INDEX][ci][0];
 
             set_user_led_rgb(i, rgb[0], rgb[1], rgb[2]);
-        } else{
-            unset_user_led_rgb(i);
+            break;
         }
     }
+
+
+    // could be moved to process_record_user()
+    if(layer != last_layer){
+
+        static uint8_t QWEASDP[] = {
+            KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D, KC_P,
+        };
+        static uint8_t YUIOHJKL[] = {
+            KC_Y, KC_U, KC_I, KC_O, KC_H, KC_J, KC_K, KC_L,
+        };
+
+        switch(last_layer){
+        case 1:
+            for(uint8_t i = 0; i < 7; ++i){
+                unset_indicator_led_rgb(ktli(QWEASDP[i]), 1);
+            }
+            break;
+        case 2:
+            for(uint8_t i = 0; i < 6; ++i){
+                unset_indicator_led_rgb(ktli(QWEASDP[i]), 2);
+            }
+            for(uint8_t i = 0; i < 8; ++i){
+                unset_indicator_led_rgb(ktli(YUIOHJKL[i]), 2);
+            }
+            unset_indicator_led_rgb(ktli(KC_TAB), 2);
+            unset_indicator_led_rgb(ktli(KC_CAPS), 2);
+            break;
+        }
+
+
+        switch(layer){
+        case 1:
+            for(uint8_t i = 0; i < 7; ++i){
+                set_indicator_led_rgb(ktli(QWEASDP[i]), 1, 255, 0, 0);
+            }
+            break;
+        case 2:
+            for(uint8_t i = 0; i < 6; ++i){
+                set_indicator_led_rgb(ktli(QWEASDP[i]), 2, 0, 255, 0);
+            }
+            for(uint8_t i = 0; i < 8; ++i){
+                set_indicator_led_rgb(ktli(YUIOHJKL[i]), 2, 0, 255, 0);
+            }
+            set_indicator_led_rgb(ktli(KC_TAB), 2, 0, 255, 0);
+            set_indicator_led_rgb(ktli(KC_CAPS), 2, 0, 255, 0);
+            break;
+        }
+
+        refresh_pattern_indicators();
+        refresh_color_pattern_indicators();
+        last_layer = layer;
+    }
+
 
     switch(layer){
     case 0:
         if(timer_elapsed32(scan_timer) > 2000){
             scan_timer = timer_read32();
         } else if(timer_elapsed32(scan_timer) > 1000){
-            set_user_led_rgb(ktli(KC_F5), 255, 255, 255);
+            // set_user_led_rgb(ktli(KC_F5), 255, 255, 255);
         }
         break;
     case 1:
@@ -588,50 +701,6 @@ void matrix_scan_user(void) {
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static uint32_t key_timer;
-
-    static uint8_t QWEASDP[] = {
-        KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D, KC_P,
-    };
-    static uint8_t GRV_123456[] = {
-        KC_GRV, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6,
-    };
-    if(record->event.pressed){
-        switch(keycode){
-        case MO(1):
-            for(uint8_t i = 0; i < 7; ++i){
-                set_indicator_led_rgb(ktli(QWEASDP[i]), 1, 255, 0, 0);
-            }
-            break;
-        case MO(2):
-            for(uint8_t i = 0; i < 7; ++i){
-                set_indicator_led_rgb(ktli(GRV_123456[i]), 2, 0, 255, 0);
-            }
-            for(uint8_t i = 0; i < 6; ++i){
-                set_indicator_led_rgb(ktli(QWEASDP[i]), 2, 0, 255, 0);
-            }
-            break;
-        }
-    } else{
-        switch(keycode){
-        case MO(1):
-            for(uint8_t i = 0; i < 7; ++i){
-                unset_indicator_led_rgb(ktli(QWEASDP[i]), 1);
-            }
-            break;
-        case MO(2):
-            for(uint8_t i = 0; i < 7; ++i){
-                unset_indicator_led_rgb(ktli(GRV_123456[i]), 2);
-            }
-            for(uint8_t i = 0; i < 6; ++i){
-                unset_indicator_led_rgb(ktli(QWEASDP[i]), 2);
-            }
-
-            for(uint8_t i = 0; i < 7; ++i){
-                set_indicator_led_rgb(ktli(QWEASDP[i]), 1, 255, 0, 0);
-            }
-            break;
-        }
-    }
 
 
     switch (keycode) {
@@ -816,7 +885,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
                     KEY_STROKES[i].alive = 0;
                 }
-
+                refresh_pattern_indicators();
+                refresh_color_pattern_indicators();
             }
             return false;
         case L_SP_WD:
@@ -847,6 +917,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 uint8_t incre = keycode == L_CP_PR ? COLOR_PATTERNS_COUNT - 1 : 1;
                 USER_CONFIG.COLOR_PATTERN_INDEX += incre;
                 USER_CONFIG.COLOR_PATTERN_INDEX %= COLOR_PATTERNS_COUNT;
+                refresh_color_pattern_indicators();
             }
             return false;
         default:

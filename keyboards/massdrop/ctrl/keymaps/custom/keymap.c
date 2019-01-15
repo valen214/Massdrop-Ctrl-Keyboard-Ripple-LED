@@ -433,41 +433,13 @@ void matrix_scan_user(void) {
     for(int i = 1; i < LED_NUMBERS; ++i){
         _ub handle_type = USE_PATTERN, c = 0;
         switch(USER_CONFIG.DRIPPLE_PATTERN){
-        case 0:
-            handle_type = USE_PATTERN;
-            break;
-        case 1:
-            if(wave_front[i]){
-                handle_type = USE_PATTERN;
-            } else{
-                handle_type = BLACK_RGB;
-            }
-            break;
-        case 2:
-            if(wave_front[i]){
-                handle_type = BLACK_RGB;
-            } else{
-                handle_type = USE_PATTERN;
-            }
-            break;
-        case 3:
+        case 0: handle_type = USE_PATTERN; break;
+        case 1: handle_type = wave_front[i] ? USE_PATTERN : BLACK_RGB; break;
+        case 2: handle_type = wave_front[i] ? BLACK_RGB : USE_PATTERN; break;
+        case 3: handle_type = wave_front[i] ? COLOR_RGB : BLACK_RGB; break;
         case 4:
-            if(wave_front[i]){
-                handle_type = COLOR_RGB;
-            } else if(USER_CONFIG.DRIPPLE_PATTERN == 4){
-                handle_type = USE_PATTERN;
-            } else{
-                handle_type = BLACK_RGB;
-            }
-            break;
         case 5:
-        case 6:
-            if(wave_front[i]){
-                handle_type = COLOR_RGB;
-            } else{
-                handle_type = USE_PATTERN;
-            }
-            break;
+        case 6: handle_type = wave_front[i] ? COLOR_RGB : USE_PATTERN; break;
         }
 
         switch(handle_type){

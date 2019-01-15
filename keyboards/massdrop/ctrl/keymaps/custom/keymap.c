@@ -151,7 +151,7 @@ struct{
     .WAVE_FRONT_WIDTH = 3,
     .WAVE_PERIOD = 50,
     .COLOR_PATTERN_INDEX = 0,
-    .TRAVEL_DISTANCE = 20,
+    .TRAVEL_DISTANCE = 25,
 };
 
 #define KEY_STROKES_LENGTH 20
@@ -640,7 +640,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 USER_CONFIG.DRIPPLE_PATTERN %= PATTERN_COUNT;
 
                 if(USER_CONFIG.DRIPPLE_PATTERN <= 4){
-                    USER_CONFIG.TRAVEL_DISTANCE = 20;
+                    USER_CONFIG.TRAVEL_DISTANCE = 25;
                     USER_CONFIG.COLOR_PATTERN_INDEX = 0;
                     USER_CONFIG.WAVE_PERIOD = 50;
                 }

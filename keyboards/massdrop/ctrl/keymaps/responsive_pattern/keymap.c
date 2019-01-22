@@ -1,7 +1,5 @@
 #include QMK_KEYBOARD_H
 
-#include <print.h>
-
 // uint8_t keyboard_leds(void)
 #include <tmk_core/protocol/arm_atsam/main_arm_atsam.h>
 
@@ -240,7 +238,7 @@ static void init_distance_map(void){
     }
 }
 void matrix_init_user(void) {
-    read_eeprom_to_config();
+    // read_eeprom_to_config();
     init_keycode_to_led_map();
     init_distance_map();
 };
@@ -689,7 +687,6 @@ uint32_t layer_state_set_user(uint32_t state){
 
 // Runs constantly in the background, in a loop.
 void matrix_scan_user(void) {
-    uprintf("%u %u\n", eeconfig_read_user(), eeconfig_read_kb());
     calculate_keystroke_distance();
 
     
@@ -873,6 +870,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
         case L_SP_FC:
             // please do not press MD_BOOT at the same time
+            /*
             if (record->event.pressed) {
                 key_timer = timer_read32();
             } else {
@@ -891,6 +889,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     }
                 }
             }
+            */
             return false;
         case L_SP_PR: // previous dripple pattern
         case L_SP_NE: // next dripple pattern

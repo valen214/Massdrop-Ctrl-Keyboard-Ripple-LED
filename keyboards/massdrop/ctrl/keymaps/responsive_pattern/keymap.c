@@ -1,5 +1,7 @@
 #include QMK_KEYBOARD_H
 
+#include <print.h>
+
 // uint8_t keyboard_leds(void)
 #include <tmk_core/protocol/arm_atsam/main_arm_atsam.h>
 
@@ -48,7 +50,9 @@ enum ctrl_keycodes {
     L_SP_SL,            //LED Splash wave travel speed slower (longer period)
 
     L_CP_PR,            //LED Color Pattern Select Previous
-    L_CP_NX,            //LEB Color Pattern Select Next
+    L_CP_NX,            //LED Color Pattern Select Next
+
+    L_SP_FC,            //LED Splash Flash Config
 };
 
 #define TG_NKRO MAGIC_TOGGLE_NKRO //Toggle 6KRO / NKRO mode
@@ -77,7 +81,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,            _______, _______, _______, \
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,   _______, _______, _______, \
         L_CP_NX, L_SP_SL, L_SP_WD, L_SP_FA, _______, _______, L_CP_NX, L_SP_SL, L_SP_WD, L_SP_FA, _______, _______, _______, _______,   _______, _______, _______, \
-        L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, _______, _______, L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, _______, _______, _______, \
+        L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, _______, _______, L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, _______, _______, L_SP_FC, \
         _______, _______, _______, _______, _______, _______, TG_NKRO, _______, _______, _______, _______, _______,                              _______, \
         _______, _______, _______,                   _______,                            _______, _______, _______, _______,            _______, _______, _______ \
     ),
@@ -105,6 +109,7 @@ struct user_led_t {
 
 };
 
+
 struct {
     uint8_t PATTERN_INDEX;
     uint8_t WAVE_FRONT_WIDTH;
@@ -112,12 +117,51 @@ struct {
     uint8_t COLOR_PATTERN_INDEX;
     uint8_t TRAVEL_DISTANCE;
 } USER_CONFIG = {
-    .PATTERN_INDEX = 1,
+    .PATTERN_INDEX = 2,
     .WAVE_FRONT_WIDTH = 3,
     .WAVE_PERIOD = 50,
     .COLOR_PATTERN_INDEX = 0,
     .TRAVEL_DISTANCE = 25,
 };
+
+/*
+https://beta.docs.qmk.fm/detailed-guides/custom_quantum_functions#persistent-configuration-eeprom
+0b00000011111110000000000000000000
+__01234567890123456789012345678901
+
+
+bit [     0]: is_config_stored ( 0 ~ 1 )                ; 0x80000000
+bit [ 1,  2]: unused (potentially version number)       ; 
+bit [ 3,  5]: pattern index    ( 0 ~ 7 )                ; 0x1c000000
+bit [ 6, 12]: wave front width ( 0 ~ 127 )              ; 0x03f80000
+bit [13, 22]: wave period / 10 ( 0 ~ 1023 )             ; 
+bit [23, 26]: color ptrn indx  ( 0 ~ 15 )               ;
+bit [27, 31]: travel distance  ( 0 ~ 31 )               ;
+*/
+
+void read_eeprom_to_config(void){
+    uint32_t raw = eeconfig_read_kb();
+    uint8_t is_config_stored = raw >> 31 & 1;
+    if(is_config_stored){
+        USER_CONFIG.PATTERN_INDEX       = raw >> 26 & 0x07;
+        USER_CONFIG.WAVE_FRONT_WIDTH    = raw >> 19 & 0x7f;
+        USER_CONFIG.WAVE_PERIOD         = (raw >> 9 & 0x3ff) * 10;
+        USER_CONFIG.COLOR_PATTERN_INDEX = raw >> 5 & 0x0f;
+        USER_CONFIG.TRAVEL_DISTANCE     = raw & 0x1f;
+    }
+}
+void write_config_to_eeprom(void){
+    uint32_t raw = 1 << 31;
+    raw |= (USER_CONFIG.PATTERN_INDEX        & 0x07  ) << 26;
+    raw |= (USER_CONFIG.WAVE_FRONT_WIDTH     & 0x7f  ) << 19;
+    raw |= (USER_CONFIG.WAVE_PERIOD / 10     & 0x3ff ) << 9;
+    raw |= (USER_CONFIG.COLOR_PATTERN_INDEX  & 0x0f  ) << 5;
+    raw |= (USER_CONFIG.TRAVEL_DISTANCE      & 0x1f  );
+    eeconfig_update_kb(raw);
+}
+void eeconfig_init_user(void){
+    // write_config_to_eeprom();
+}
 
 uint8_t ktli(uint16_t keycode){
     if(keycode < 256){
@@ -196,6 +240,7 @@ static void init_distance_map(void){
     }
 }
 void matrix_init_user(void) {
+    read_eeprom_to_config();
     init_keycode_to_led_map();
     init_distance_map();
 };
@@ -574,11 +619,14 @@ void refresh_color_pattern_indicators(void){
         }
     }
 }
-
-// Runs constantly in the background, in a loop.
-void matrix_scan_user(void) {
-    static uint32_t scan_timer = 0;
-    static uint8_t last_layer = 0;
+void refresh_indicators(void){
+    static uint32_t last_layer = 0;
+    static uint8_t QWEASDP[] = {
+        KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D, KC_P,
+    };
+    static uint8_t YUIOHJKL[] = {
+        KC_Y, KC_U, KC_I, KC_O, KC_H, KC_J, KC_K, KC_L,
+    };
 
     uint8_t layer = 0;
     if(layer_state >= 0x04){
@@ -587,6 +635,61 @@ void matrix_scan_user(void) {
         layer = 1;
     }
 
+    // could be moved to process_record_user()
+    if(layer != last_layer){
+        switch(last_layer){
+        case 1:
+            for(uint8_t i = 0; i < 7; ++i){
+                unset_indicator_led_rgb(ktli(QWEASDP[i]), 1);
+            }
+            break;
+        case 2:
+            for(uint8_t i = 0; i < 6; ++i){
+                unset_indicator_led_rgb(ktli(QWEASDP[i]), 2);
+            }
+            for(uint8_t i = 0; i < 8; ++i){
+                unset_indicator_led_rgb(ktli(YUIOHJKL[i]), 2);
+            }
+            unset_indicator_led_rgb(ktli(KC_TAB), 2);
+            unset_indicator_led_rgb(ktli(KC_CAPS), 2);
+            unset_indicator_led_rgb(ktli(KC_ENT), 2);
+            break;
+        }
+
+
+        switch(layer){
+        case 1:
+            for(uint8_t i = 0; i < 7; ++i){
+                set_indicator_led_rgb(ktli(QWEASDP[i]), 1, 255, 0, 0);
+            }
+            break;
+        case 2:
+            for(uint8_t i = 0; i < 6; ++i){
+                set_indicator_led_rgb(ktli(QWEASDP[i]), 2, 0, 255, 0);
+            }
+            for(uint8_t i = 0; i < 8; ++i){
+                set_indicator_led_rgb(ktli(YUIOHJKL[i]), 2, 0, 255, 0);
+            }
+            set_indicator_led_rgb(ktli(KC_TAB), 2, 0, 255, 0);
+            set_indicator_led_rgb(ktli(KC_CAPS), 2, 0, 255, 0);
+            set_indicator_led_rgb(ktli(KC_ENT), 2, 255, 0, 0);
+            break;
+        }
+
+        refresh_pattern_indicators();
+        refresh_color_pattern_indicators();
+        last_layer = layer;
+    }
+}
+
+// https://beta.docs.qmk.fm/detailed-guides/custom_quantum_functions#layer-change-code
+uint32_t layer_state_set_user(uint32_t state){
+    return state;
+}
+
+// Runs constantly in the background, in a loop.
+void matrix_scan_user(void) {
+    uprintf("%u %u\n", eeconfig_read_user(), eeconfig_read_kb());
     calculate_keystroke_distance();
 
     
@@ -625,74 +728,7 @@ void matrix_scan_user(void) {
         }
     }
 
-
-    // could be moved to process_record_user()
-    if(layer != last_layer){
-
-        static uint8_t QWEASDP[] = {
-            KC_Q, KC_W, KC_E, KC_A, KC_S, KC_D, KC_P,
-        };
-        static uint8_t YUIOHJKL[] = {
-            KC_Y, KC_U, KC_I, KC_O, KC_H, KC_J, KC_K, KC_L,
-        };
-
-        switch(last_layer){
-        case 1:
-            for(uint8_t i = 0; i < 7; ++i){
-                unset_indicator_led_rgb(ktli(QWEASDP[i]), 1);
-            }
-            break;
-        case 2:
-            for(uint8_t i = 0; i < 6; ++i){
-                unset_indicator_led_rgb(ktli(QWEASDP[i]), 2);
-            }
-            for(uint8_t i = 0; i < 8; ++i){
-                unset_indicator_led_rgb(ktli(YUIOHJKL[i]), 2);
-            }
-            unset_indicator_led_rgb(ktli(KC_TAB), 2);
-            unset_indicator_led_rgb(ktli(KC_CAPS), 2);
-            break;
-        }
-
-
-        switch(layer){
-        case 1:
-            for(uint8_t i = 0; i < 7; ++i){
-                set_indicator_led_rgb(ktli(QWEASDP[i]), 1, 255, 0, 0);
-            }
-            break;
-        case 2:
-            for(uint8_t i = 0; i < 6; ++i){
-                set_indicator_led_rgb(ktli(QWEASDP[i]), 2, 0, 255, 0);
-            }
-            for(uint8_t i = 0; i < 8; ++i){
-                set_indicator_led_rgb(ktli(YUIOHJKL[i]), 2, 0, 255, 0);
-            }
-            set_indicator_led_rgb(ktli(KC_TAB), 2, 0, 255, 0);
-            set_indicator_led_rgb(ktli(KC_CAPS), 2, 0, 255, 0);
-            break;
-        }
-
-        refresh_pattern_indicators();
-        refresh_color_pattern_indicators();
-        last_layer = layer;
-    }
-
-
-    switch(layer){
-    case 0:
-        if(timer_elapsed32(scan_timer) > 2000){
-            scan_timer = timer_read32();
-        } else if(timer_elapsed32(scan_timer) > 1000){
-            // set_user_led_rgb(ktli(KC_F5), 255, 255, 255);
-        }
-        break;
-    case 1:
-        break;
-    case 2:
-        break;
-    }
-
+    refresh_indicators();
 };
 
 #define MODS_SHIFT  (keyboard_report->mods & MOD_BIT(KC_LSHIFT) || keyboard_report->mods & MOD_BIT(KC_RSHIFT))
@@ -835,7 +871,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 
 
-            
+        case L_SP_FC:
+            // please do not press MD_BOOT at the same time
+            if (record->event.pressed) {
+                key_timer = timer_read32();
+            } else {
+                if (timer_elapsed32(key_timer) >= 500) {
+                    write_config_to_eeprom();
+                    uint8_t led_id = ktli(KC_ENT);
+                    if(led_id){
+                        for(int i = 0; i < KEY_STROKES_LENGTH; ++i){
+                            if(!KEY_STROKES[i].alive){
+                                KEY_STROKES[i].alive = 1;
+                                KEY_STROKES[i].led_id = led_id;
+                                KEY_STROKES[i].time = timer_read32();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
         case L_SP_PR: // previous dripple pattern
         case L_SP_NE: // next dripple pattern
             if (record->event.pressed) {

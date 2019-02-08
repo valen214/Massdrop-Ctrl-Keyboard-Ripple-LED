@@ -50,8 +50,15 @@ enum ctrl_keycodes {
     L_CP_PR,            //LED Color Pattern Select Previous
     L_CP_NX,            //LED Color Pattern Select Next
 
-    L_SP_FC,            //LED Splash Flash Config
+    L_SP_FC,            //LED Splash Flash Config save to eeprom
+    L_SP_TU,            //LED Splash toggle underglow overriding
+
+    UG_88, UG_89, UG_90, UG_91, UG_92, UG_93, UG_94, UG_95, UG_96, UG_97,
+    UG_98, UG_99, UG_100, UG_101, UG_102, UG_103, UG_104, UG_105, UG_106,
+    UG_107, UG_108, UG_109, UG_110, UG_111, UG_112, UG_113, UG_114, UG_115,
+    UG_116, UG_117, UG_118, UG_119
 };
+
 
 #define TG_NKRO MAGIC_TOGGLE_NKRO //Toggle 6KRO / NKRO mode
 #define ______ KC_TRNS
@@ -80,7 +87,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,   _______, _______, _______, \
         L_CP_NX, L_SP_SL, L_SP_WD, L_SP_FA, _______, _______, L_CP_NX, L_SP_SL, L_SP_WD, L_SP_FA, _______, _______, _______, _______,   _______, _______, _______, \
         L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, _______, _______, L_CP_PR, L_SP_PR, L_SP_NW, L_SP_NE, _______, _______, L_SP_FC, \
-        _______, _______, _______, _______, _______, _______, TG_NKRO, _______, _______, _______, _______, _______,                              _______, \
+        L_SP_TU, _______, _______, _______, _______, _______, TG_NKRO, _______, _______, _______, _______, _______,                              _______, \
         _______, _______, _______,                   _______,                            _______, _______, _______, _______,            _______, _______, _______ \
     ),
     /*
@@ -97,13 +104,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 // see: /tmk_core/common/keycode.h
 uint8_t KEYCODE_TO_LED_ID[256];
-uint8_t DISTANCE_MAP[KEY_LED_COUNT+1][KEY_LED_COUNT+1];
+uint8_t DISTANCE_MAP[ISSI3733_LED_COUNT+1][ISSI3733_LED_COUNT+1];
 struct user_led_t {
     uint8_t state;
     uint8_t r;
     uint8_t g;
     uint8_t b;
-} USER_LED[KEY_LED_COUNT] = {
+} USER_LED[ISSI3733_LED_COUNT] = {
 
 };
 
@@ -114,12 +121,14 @@ struct {
     uint16_t WAVE_PERIOD;
     uint8_t COLOR_PATTERN_INDEX;
     uint8_t TRAVEL_DISTANCE;
+    bool OVERRIDE_UNDERGLOW;
 } USER_CONFIG = {
-    .PATTERN_INDEX = 2,
+    .PATTERN_INDEX = 4,
     .WAVE_FRONT_WIDTH = 3,
     .WAVE_PERIOD = 50,
-    .COLOR_PATTERN_INDEX = 0,
-    .TRAVEL_DISTANCE = 25,
+    .COLOR_PATTERN_INDEX = 3,
+    .TRAVEL_DISTANCE = 30,
+    .OVERRIDE_UNDERGLOW = false,
 };
 
 /*
@@ -169,6 +178,38 @@ uint8_t ktli(uint16_t keycode){
     switch(keycode){
     // definition of MO(layer): quantum/quantum_keycodes.h: line 614
     case MO(1): return 82;
+    case UG_88: return 88;
+    case UG_89: return 89;
+    case UG_90: return 90;
+    case UG_91: return 91;
+    case UG_92: return 92;
+    case UG_93: return 93;
+    case UG_94: return 94;
+    case UG_95: return 95;
+    case UG_96: return 96;
+    case UG_97: return 97;
+    case UG_98: return 98;
+    case UG_99: return 99;
+    case UG_100: return 100;
+    case UG_101: return 101;
+    case UG_102: return 102;
+    case UG_103: return 103;
+    case UG_104: return 104;
+    case UG_105: return 105;
+    case UG_106: return 106;
+    case UG_107: return 107;
+    case UG_108: return 108;
+    case UG_109: return 109;
+    case UG_110: return 110;
+    case UG_111: return 111;
+    case UG_112: return 112;
+    case UG_113: return 113;
+    case UG_114: return 114;
+    case UG_115: return 115;
+    case UG_116: return 116;
+    case UG_117: return 117;
+    case UG_118: return 118;
+    case UG_119: return 119;
     }
     return 0;
 };
@@ -196,17 +237,18 @@ static void init_keycode_to_led_map(void){
     }
 }
 // https://docs.qmk.fm/#/feature_terminal
-#define KEY_POSITION_MAP_ROWS 6
-#define KEY_POSITION_MAP_COLUMNS 20
+#define KEY_POSITION_MAP_ROWS 8
+#define KEY_POSITION_MAP_COLUMNS 22
 static void init_distance_map(void){
     uint16_t KEY_POSITION_MAP[KEY_POSITION_MAP_ROWS][KEY_POSITION_MAP_COLUMNS] = {
-        { KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,    KC_F10,  KC_F11,  KC_F12,  KC_NO,   KC_PSCR, KC_SLCK, KC_PAUS,  },
-        // { KC_NO,   KC_NO,   KC_NO,   KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,    KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
-        { KC_NO,   KC_GRV,  KC_1,    KC_2,   KC_3,   KC_4,   KC_5,   KC_6,   KC_7,   KC_8,    KC_9,   KC_0,    KC_MINS,  KC_EQL,  KC_BSPC, KC_BSPC, KC_NO,   KC_INS,  KC_HOME, KC_PGUP,  },
-        { KC_NO,   KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,  KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,   KC_DEL,  KC_END,  KC_PGDN,  },
-        { KC_NO,   KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,  KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,   KC_NO,   KC_NO,   KC_NO,    },
-        { KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT,  KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,   KC_NO,   KC_UP,   KC_NO,    },
-        { KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  MO(1),   KC_APP,   KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,   KC_LEFT, KC_DOWN, KC_RIGHT, },
+        { KC_NO,  UG_104,  UG_104,  UG_105,  UG_106, UG_107, UG_108, KC_NO,  UG_109, KC_NO,  UG_110,  KC_NO,  UG_111,  KC_NO,   UG_112,  UG_113,  KC_NO,   UG_114, KC_NO,   KC_NO,   UG_115,   UG_116, },
+        { KC_NO,  KC_NO,   KC_ESC,  KC_NO,   KC_F1,  KC_F2,  KC_F3,  KC_F4,  KC_NO,  KC_F5,  KC_F6,   KC_F7,  KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  KC_NO,  KC_PSCR, KC_SLCK, KC_PAUS,  KC_NO,  },
+        { KC_NO,  UG_103,  KC_GRV,  KC_1,    KC_2,   KC_3,   KC_4,   KC_5,   KC_6,   KC_7,   KC_8,    KC_9,   KC_0,    KC_MINS, KC_EQL,  KC_BSPC, KC_BSPC, KC_NO,  KC_INS,  KC_HOME, KC_PGUP,  UG_117, },
+        { KC_NO,  UG_102,  KC_TAB,  KC_Q,    KC_W,   KC_E,   KC_R,   KC_T,   KC_Y,   KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC, KC_RBRC, KC_BSLS, KC_BSLS, KC_NO,  KC_DEL,  KC_END,  KC_PGDN,  UG_118, },
+        { KC_NO,  UG_101,  KC_CAPS, KC_A,    KC_S,   KC_D,   KC_F,   KC_G,   KC_H,   KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT, KC_ENT,  KC_ENT,  KC_ENT,  KC_NO,  KC_NO,   KC_NO,   KC_NO,    UG_119, },
+        { KC_NO,  KC_NO,   KC_LSFT, KC_Z,    KC_X,   KC_C,   KC_V,   KC_B,   KC_N,   KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_RSFT, KC_RSFT, KC_RSFT, KC_RSFT, KC_NO,  KC_NO,   KC_UP,   KC_NO,    KC_NO,  },
+        { KC_NO,  KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_SPC, KC_RALT, KC_NO,  MO(1),   KC_APP,  KC_RCTL, KC_RCTL, KC_RCTL, KC_NO,  KC_LEFT, KC_DOWN, KC_RIGHT, KC_NO,  },
+        { UG_100, UG_99,   UG_98,   UG_97,   UG_96,  KC_NO,  UG_95,  KC_NO,  UG_94,  KC_NO,  UG_93,   KC_NO,  UG_92,   UG_91,   KC_NO,   UG_90,   KC_NO,   UG_90,  KC_NO,   KC_NO,   UG_89,    UG_88,  },
     };
     uint8_t columns = KEY_POSITION_MAP_COLUMNS;
     uint8_t rows = KEY_POSITION_MAP_ROWS;
@@ -312,23 +354,20 @@ void led_matrix_run(void)
 
     fmax = fcur; //Store total frames count
 
-    struct user_led_t user_led_cur;
     while (led_cur < lede && led_this_run < led_per_run)
     {
         ro = 0;
         go = 0;
         bo = 0;
 
-        uint8_t led_index = led_cur - led_map;                  // only this part differs from the original function.
-        if(led_index < KEY_LED_COUNT){                          // 
-            user_led_cur = USER_LED[led_index];                 // `struct user_led_t USER_LED[]` is stored globally.
-        }                                                       // 
-                                                                // 
-        if(led_index < KEY_LED_COUNT && user_led_cur.state){    // `user_led_cur` is just for convenience
-            ro = user_led_cur.r;                                // 
-            go = user_led_cur.g;                                // 
-            bo = user_led_cur.b;                                // 
-        }                                                       // 
+                                                                        // only this part differs from the original function.
+        struct user_led_t user_led_cur = USER_LED[led_cur - led_map];   // `struct user_led_t USER_LED[]` is stored globally.
+                                                                        // 
+        if(user_led_cur.state){                                         // `user_led_cur` is just for convenience
+            ro = user_led_cur.r;                                        // 
+            go = user_led_cur.g;                                        // 
+            bo = user_led_cur.b;                                        // 
+        }                                                               // 
         else if (led_lighting_mode == LED_MODE_KEYS_ONLY && led_cur->scan == 255)
         {
             //Do not act on this LED
@@ -474,26 +513,19 @@ struct {
 
 
 
-
-void set_led_rgb(uint8_t led_id, uint8_t r, uint8_t g, uint8_t b){
-    issi3733_led_t *target_led = (led_map + led_id);
-    *target_led->rgb.r = r;
-    *target_led->rgb.g = g;
-    *target_led->rgb.b = b;
-}
-
-
-uint8_t DISTANCE_FROM_LAST_KEYSTROKE[KEY_LED_COUNT+1];
+uint8_t DISTANCE_FROM_LAST_KEYSTROKE[ISSI3733_LED_COUNT+1];
 void calculate_keystroke_distance(void){
     bool alive;
     uint8_t led_id, period_passed;
     uint32_t t;
 
 
-    for(uint8_t i = 0; i <= KEY_LED_COUNT; ++i){
+    for(uint8_t i = 0; i <= ISSI3733_LED_COUNT; ++i){
         DISTANCE_FROM_LAST_KEYSTROKE[i] = 0;
     }
 
+    uint8_t count = USER_CONFIG.OVERRIDE_UNDERGLOW ?
+            ISSI3733_LED_COUNT : KEY_LED_COUNT;
     for(uint8_t i = 0; i < KEY_STROKES_LENGTH; ++i){
         if(KEY_STROKES[i].alive){
             t = timer_elapsed32(KEY_STROKES[i].time);
@@ -502,7 +534,7 @@ void calculate_keystroke_distance(void){
             period_passed = t / USER_CONFIG.WAVE_PERIOD;
 
             uint8_t delta_period;
-            for(uint8_t j = 1; j <= KEY_LED_COUNT; ++j){
+            for(uint8_t j = 1; j <= count; ++j){
                 delta_period = period_passed - DISTANCE_MAP[led_id][j];
                 if(( delta_period < USER_CONFIG.WAVE_FRONT_WIDTH) && (
                     DISTANCE_MAP[led_id][j] <= USER_CONFIG.TRAVEL_DISTANCE
@@ -582,21 +614,22 @@ void unset_indicator_led_rgb(uint8_t i, uint8_t layer){
 }
 
 void refresh_pattern_indicators(void){
-    static uint8_t GRV_123456[] = {
-        KC_GRV, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6,
+    static uint8_t indicators[] = {
+        KC_GRV, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_LSFT,
     };
+    static uint8_t length = sizeof(indicators) / sizeof(indicators[0]);
 
     if(layer_state >= 0x04){
-        for(uint8_t i = 0; i < 7; ++i){
+        for(uint8_t i = 0; i < length; ++i){
             if(i == USER_CONFIG.PATTERN_INDEX){
-                set_indicator_led_rgb(ktli(GRV_123456[i]), 2, 0, 0, 255);
+                set_indicator_led_rgb(ktli(indicators[i]), 2, 0, 0, 255);
             } else{
-                set_indicator_led_rgb(ktli(GRV_123456[i]), 2, 0, 255, 0);
+                set_indicator_led_rgb(ktli(indicators[i]), 2, 0, 255, 0);
             }
         }
     } else{
-        for(uint8_t i = 0; i < 7; ++i){
-            unset_indicator_led_rgb(ktli(GRV_123456[i]), 2);
+        for(uint8_t i = 0; i < length; ++i){
+            unset_indicator_led_rgb(ktli(indicators[i]), 2);
         }
     }
 }
@@ -697,7 +730,7 @@ void matrix_scan_user(void) {
     uint8_t *rgb;
     uint8_t handle_type;
     uint8_t distance;
-    for(uint8_t i = 1; i <= KEY_LED_COUNT; ++i){
+    for(uint8_t i = 1; i <= ISSI3733_LED_COUNT; ++i){
         if(USER_LED[i-1].state >= 2) continue;
         
         handle_type = USE_PATTERN;
@@ -900,7 +933,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 USER_CONFIG.PATTERN_INDEX %= PATTERN_COUNT;
 
                 if(USER_CONFIG.PATTERN_INDEX <= 4){
-                    USER_CONFIG.TRAVEL_DISTANCE = 25;
+                    USER_CONFIG.TRAVEL_DISTANCE = 30;
                     USER_CONFIG.COLOR_PATTERN_INDEX = 0;
                     USER_CONFIG.WAVE_PERIOD = 50;
                 }
@@ -975,6 +1008,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 refresh_color_pattern_indicators();
             }
             return false;
+        case L_SP_TU:
+            if(record->event.pressed){
+                USER_CONFIG.OVERRIDE_UNDERGLOW ^= true;
+            }
         default:
             if (record->event.pressed){
                 uint8_t led_id = ktli(keycode);
